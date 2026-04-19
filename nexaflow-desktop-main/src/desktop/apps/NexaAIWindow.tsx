@@ -1,12 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 import { useDesktop } from "../store";
 import Window from "../Window";
-import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles } from "lucide-react";
+import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles, Zap, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { routeCommand } from '@/hooks/use-command-router';
+import { routeCommand, type LLMEngine } from '@/hooks/use-command-router';
+import { callGemini } from '@/lib/gemini-client';
 import { NEXAFLOW_SYSTEM_CONTEXT } from '@/lib/nexaflow-context';
 
-type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string };
+type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine };
+
+/** Pill badge shown in each assistant card */
+function EngineBadge({ engine }: { engine: LLMEngine }) {
+  if (engine === 'gemini') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm">
+        <Zap className="w-2.5 h-2.5" />
+        Gemini 2.5
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-emerald-100 text-emerald-800 border border-emerald-200">
+      <Bot className="w-2.5 h-2.5" />
+      Ollama
+    </span>
+  );
+}
 
 const HISTORY = [
   { group: "Today", items: [
@@ -33,7 +52,7 @@ const SUGGESTIONS = [
   { icon: "📋", title: "Run a performance review" },
 ];
 
-const SHORTCUTS = ["/comp-analysis", "/draft-offer", "/onboarding", "/people-report", "/performance-review", "/policy-lookup"];
+const SHORTCUTS = ["/comp-analysis", "/draft-offer", "/onboarding", "/people-report", "/performance-review", "/policy-lookup", "/cas-001", "/cas-002"];
 
 const MODELS = [
   { id: "gemma-local", icon: "✦", label: "Gemma 4 · Local", badge: "default" },
@@ -148,36 +167,69 @@ export default function NexaAIWindow() {
       routed = await routeCommand(text);
     } catch (err) {
       console.error('routeCommand failed:', err);
-      routed = null;
     }
 
+    // Determine which engine to use
+    const targetEngine: LLMEngine = routed?.engine ?? 'ollama';
+    let reply = '';
+    let usedEngine: LLMEngine = targetEngine;
+
+    const systemPrompt = routed
+      ? `${NEXAFLOW_SYSTEM_CONTEXT}\n\n=== TASK ===\n${routed.systemPrompt}`
+      : NEXAFLOW_SYSTEM_CONTEXT;
+    const userPrompt = routed?.contextData
+      ? `${routed.contextData}\n\nExecute the HR action.`
+      : text;
+
     try {
-      const res = await fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gemma4:latest",
-          system: routed
-            ? `${NEXAFLOW_SYSTEM_CONTEXT}\n\n=== TASK ===\n${routed.systemPrompt}`
-            : NEXAFLOW_SYSTEM_CONTEXT,
-          prompt: routed?.contextData
-            ? `${routed.contextData}\n\nExecute the HR action.`
-            : text,
-          stream: false,
-        }),
-      });
+      if (targetEngine === 'gemini') {
+        // ── Gemini path ──────────────────────────────────────
+        try {
+          const geminiRes = await callGemini({ system: systemPrompt, prompt: userPrompt });
+          reply = geminiRes.text;
+          usedEngine = 'gemini';
+        } catch (geminiErr) {
+          console.warn('Gemini failed, falling back to Ollama:', geminiErr);
+          // Graceful fallback to Ollama
+          const res = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'gemma4:latest', system: systemPrompt, prompt: userPrompt, stream: false }),
+          });
+          const data = await res.json();
+          reply = data.response ?? JSON.stringify(data);
+          usedEngine = 'ollama';
+        }
+      } else {
+        // ── Ollama path ───────────────────────────────────────
+        try {
+          const res = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'gemma4:latest', system: systemPrompt, prompt: userPrompt, stream: false }),
+          });
+          const data = await res.json();
+          reply = data.response ?? JSON.stringify(data);
+          usedEngine = 'ollama';
+        } catch (ollamaErr) {
+          console.warn('Ollama failed, trying Gemini fallback:', ollamaErr);
+          const geminiRes = await callGemini({ system: systemPrompt, prompt: userPrompt });
+          reply = geminiRes.text;
+          usedEngine = 'gemini';
+        }
+      }
 
-      const data = await res.json();
-      const reply = data.response ?? JSON.stringify(data);
-
+      const engine = usedEngine;
       setMessages((m) => [...m, {
-        role: "assistant",
+        role: 'assistant',
+        engine,
         content: (
           <div className="space-y-3">
             {routed && (
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: routed.cardColor }} />
-                <span className="font-semibold text-sm">{routed.title}</span>
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: routed.cardColor }} />
+                <span className="font-semibold text-sm flex-1">{routed.title}</span>
+                <EngineBadge engine={engine} />
               </div>
             )}
             <p className="text-[14px] whitespace-pre-wrap">{reply}</p>
@@ -195,16 +247,23 @@ export default function NexaAIWindow() {
                 ))}
               </div>
             )}
-            <p className="text-[11px] text-claude-muted">
-              ★ Generated · {model.label} · GDPR-safe processing
+            <p className="text-[11px] text-claude-muted flex items-center gap-1.5 mt-2">
+              <EngineBadge engine={engine} />
+              <span>GDPR-safe · NexaFlow SA</span>
             </p>
           </div>
         ),
       }]);
-    } catch {
+    } catch (err) {
+      console.error('All engines failed:', err);
       setMessages((m) => [...m, {
-        role: "assistant",
-        content: <p className="text-red-500">⚠️ Ollama unavailable — check localhost:11434</p>,
+        role: 'assistant',
+        content: (
+          <div className="text-red-500 space-y-1">
+            <p>⚠️ Both Ollama and Gemini are unavailable.</p>
+            <p className="text-[12px]">Check localhost:11434 or your VITE_GEMINI_API_KEY.</p>
+          </div>
+        ),
       }]);
     } finally {
       setTyping(false);
@@ -368,18 +427,32 @@ export default function NexaAIWindow() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {SHORTCUTS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setInput(s + " ")}
-                    className="text-[11px] px-2 py-1 rounded-md bg-white border border-claude-border text-claude-muted hover:text-claude-text hover:border-claude-accent"
-                  >
-                    {s}
-                  </button>
-                ))}
+                {SHORTCUTS.map((s) => {
+                  const isGemini = s.startsWith('/cas-');
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setInput(s + ' ')}
+                      className={cn(
+                        "text-[11px] px-2 py-1 rounded-md border transition flex items-center gap-1",
+                        isGemini
+                          ? "bg-gradient-to-r from-blue-50 to-violet-50 border-violet-200 text-violet-700 hover:border-violet-400"
+                          : "bg-white border-claude-border text-claude-muted hover:text-claude-text hover:border-claude-accent"
+                      )}
+                    >
+                      {isGemini && <Zap className="w-2.5 h-2.5" />}
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
-              <div className="text-[11px] text-claude-muted text-center mt-3">
-                NexaAI can make mistakes. Always verify important outputs. · Powered by {model.label} · GDPR compliant
+              <div className="text-[11px] text-claude-muted text-center mt-3 flex items-center justify-center gap-2">
+                <span>NexaAI · GDPR compliant ·</span>
+                <EngineBadge engine="ollama" />
+                <span>standard</span>
+                <span className="opacity-40">|</span>
+                <EngineBadge engine="gemini" />
+                <span>deep analysis (/cas-*, --deep)</span>
               </div>
             </div>
           </div>
