@@ -1,16 +1,63 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from "react";
+import { useDesktop } from "@/desktop/store";
+import DesktopIcons from "@/desktop/DesktopIcons";
+import Taskbar from "@/desktop/Taskbar";
+import StartMenu from "@/desktop/StartMenu";
+import NotificationCenter from "@/desktop/NotificationCenter";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+import GmailWindow from "@/desktop/apps/GmailWindow";
+import NexaAIWindow from "@/desktop/apps/NexaAIWindow";
+import SirhWindow from "@/desktop/apps/SirhWindow";
+import WorkableWindow from "@/desktop/apps/WorkableWindow";
+import TeamsWindow from "@/desktop/apps/TeamsWindow";
+import CalendarWindow from "@/desktop/apps/CalendarWindow";
+import SecurexWindow from "@/desktop/apps/SecurexWindow";
+import FoldersWindow from "@/desktop/apps/FoldersWindow";
+import { DocBibleWindow, DocCas008Window } from "@/desktop/apps/DocWindows";
+
+const Index = () => {
+  const openWindow = useDesktop((s) => s.openWindow);
+  const minimizeWindow = useDesktop((s) => s.minimizeWindow);
+  const setActiveConv = useDesktop((s) => s.setNexaActiveConv);
+  const setSelectedDesktopIcon = useDesktop((s) => s.setSelectedDesktopIcon);
+
+  // Boot: 3 windows already open (Gmail foreground, NexaAI behind, SIRH minimized)
+  useEffect(() => {
+    setActiveConv("cas-008");
+    openWindow("nexaai");
+    openWindow("sirh");
+    minimizeWindow("sirh");
+    openWindow("gmail"); // last opened → foreground
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
+    <main
+      className="fixed inset-0 wallpaper overflow-hidden"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedDesktopIcon(null); }}
+    >
+      <title>Sophie Lefèvre — Windows 11 Desktop · NexaFlow CHRO</title>
+      <meta name="description" content="Windows 11 desktop emulation for Sophie Lefèvre, CHRO at NexaFlow SA. Gmail, NexaAI, SIRH, Workable, Teams, Calendar, Securex." />
+
+      <DesktopIcons />
+
+      {/* Open windows (rendered together; z-index controls stacking) */}
+      <GmailWindow />
+      <NexaAIWindow />
+      <SirhWindow />
+      <WorkableWindow />
+      <TeamsWindow />
+      <CalendarWindow />
+      <SecurexWindow />
+      <FoldersWindow />
+      <DocBibleWindow />
+      <DocCas008Window />
+
+      <NotificationCenter />
+      <StartMenu />
+      <Taskbar />
+    </main>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
