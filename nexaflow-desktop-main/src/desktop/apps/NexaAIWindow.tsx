@@ -3,6 +3,7 @@ import { useDesktop } from "../store";
 import Window from "../Window";
 import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { routeCommand } from '@/hooks/use-command-router';
 
 type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string };
 
@@ -133,42 +134,72 @@ export default function NexaAIWindow() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
 
-  function send() {
+  async function send() {
     const text = input.trim();
     if (!text) return;
-    const userContent = ctx ? (
-      <div>
-        <div className="mb-2 p-2 rounded border border-claude-border bg-white/60 text-[12px] text-claude-muted whitespace-pre-line max-h-32 overflow-auto">
-          📎 Context attached:
-          {"\n"}{ctx.slice(0, 240)}{ctx.length > 240 ? "…" : ""}
-        </div>
-        <div>{text}</div>
-      </div>
-    ) : text;
-    setMessages((m) => [...m, { role: "user", content: userContent, raw: text }]);
+
+    setMessages((m) => [...m, { role: "user", content: text, raw: text }]);
     setInput("");
-    setPrefill(null, null);
     setTyping(true);
-    setTimeout(() => {
+
+    const routed = routeCommand(text);
+
+    try {
+      const res = await fetch("http://localhost:11434/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gemma4:latest",
+          system: routed?.systemPrompt ?? "You are NexaAI, CHRO assistant at NexaFlow SA.",
+          prompt: routed?.contextData
+            ? `${routed.contextData}\n\nExecute the HR action.`
+            : text,
+          stream: false,
+        }),
+      });
+
+      const data = await res.json();
+      const reply = data.response ?? JSON.stringify(data);
+
+      setMessages((m) => [...m, {
+        role: "assistant",
+        content: (
+          <div className="space-y-3">
+            {routed && (
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: routed.cardColor }} />
+                <span className="font-semibold text-sm">{routed.title}</span>
+              </div>
+            )}
+            <p className="text-[14px] whitespace-pre-wrap">{reply}</p>
+            {routed && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {routed.chips.map((chip) => (
+                  <button
+                    key={chip}
+                    onClick={() => setInput(chip)}
+                    className="px-3 py-1 rounded-full text-xs border hover:opacity-80 transition"
+                    style={{ borderColor: routed.cardColor, color: routed.cardColor }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-[11px] text-claude-muted">
+              ★ Generated · {model.label} · GDPR-safe processing
+            </p>
+          </div>
+        ),
+      }]);
+    } catch {
+      setMessages((m) => [...m, {
+        role: "assistant",
+        content: <p className="text-red-500">⚠️ Ollama unavailable — check localhost:11434</p>,
+      }]);
+    } finally {
       setTyping(false);
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: (
-            <div className="space-y-2">
-              <p>Here's a structured response based on your request and any attached context. As CHRO at NexaFlow, the recommended next steps are:</p>
-              <ol className="list-decimal pl-5 space-y-1">
-                <li>Confirm the legal/regulatory framework that applies (BE / NL / FR / LU depending on site).</li>
-                <li>Loop in the relevant stakeholders (CLO, CEO, site lead).</li>
-                <li>Draft a written communication and circulate for validation.</li>
-              </ol>
-              <p className="text-[12px] text-claude-muted">📌 Generated in 1.4s · {model.label} · GDPR-safe processing</p>
-            </div>
-          ),
-        },
-      ]);
-    }, 900);
+    }
   }
 
   const isEmpty = messages.length === 0;
