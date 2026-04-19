@@ -143,7 +143,13 @@ export default function NexaAIWindow() {
     setInput("");
     setTyping(true);
 
-    const routed = await routeCommand(text);
+    let routed = null;
+    try {
+      routed = await routeCommand(text);
+    } catch (err) {
+      console.error('routeCommand failed:', err);
+      routed = null;
+    }
 
     try {
       const res = await fetch("http://localhost:11434/api/generate", {

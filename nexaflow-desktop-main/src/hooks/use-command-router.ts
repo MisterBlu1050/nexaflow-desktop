@@ -16,20 +16,30 @@ export async function routeCommand(input: string): Promise<HandlerResult | null>
 
   if (cmd.startsWith('/comp-analysis')) {
     const dept = input.replace(/\/comp-analysis/i, '').trim() || 'Engineering';
-    // Use IPC to query the packaged SQLite DB via preload
-    const employees = await window.electron.getCompByDept(dept);
-    const n = employees.length;
-    const salaires = employees.map((e: any) => e.salaire).filter(Boolean) as number[];
+    // Prefer IPC (Electron) but gracefully fall back to in-memory demo data when not running in Electron
+    let employeesList = employees as any[];
+    try {
+      if (typeof window !== 'undefined' && (window as any).electron && (window as any).electron.getCompByDept) {
+        const remote = await (window as any).electron.getCompByDept(dept);
+        if (Array.isArray(remote) && remote.length > 0) employeesList = remote;
+      }
+    } catch (err) {
+      // swallow and fallback to local `employees`
+      console.error('IPC getCompByDept failed, using local demo employees:', err);
+    }
+
+    const n = employeesList.length;
+    const salaires = employeesList.map((e: any) => e.salaire || e.salary).filter(Boolean) as number[];
     const sorted = salaires.slice().sort((a, b) => a - b);
     const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : undefined;
-    const highRisk = employees.filter((e: any) => e.risque_depart === 'High').length;
+    const highRisk = employeesList.filter((e: any) => (e.risque_depart || e.risk) === 'High').length;
 
     return {
       skill: 'comp-analysis',
       cardColor: 'from-emerald-900/40 to-teal-900/40',
       title: 'Compensation Analysis',
       systemPrompt: `You are NexaAI doing a compensation analysis.`,
-      contextData: `REAL SIRH DATA — ${dept} department (N=${n} employees):\nSalary data: ${JSON.stringify(employees.slice(0, 20))}\nMedian salary: €${median?.toLocaleString()}\nHigh flight risk: ${highRisk}/${n} employees\nProduce a CP200-compliant comp analysis memo to Bruno Mineo CHRO.`,
+      contextData: `REAL SIRH DATA — ${dept} department (N=${n} employees):\nSalary data: ${JSON.stringify(employeesList.slice(0, 20))}\nMedian salary: €${median?.toLocaleString()}\nHigh flight risk: ${highRisk}/${n} employees\nProduce a CP200-compliant comp analysis memo to Bruno Mineo CHRO.`,
       chips: ['CP200', dept, `N=${n}`, `Médiane €${median?.toLocaleString()}`],
     };
   }
