@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Temp build artefacts
+.tmp_cjs/
+.tmp_es/
+
+# Data files (SIRH Excel — contains PII)
+*.xlsx
+
+# Dev/test scripts not part of the build
+scripts/comp-analysis-test.cjs
+run_nexaai_test.*

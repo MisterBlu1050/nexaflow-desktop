@@ -1,0 +1,4 @@
+# Root-level gitignore — deps that were accidentally placed here
+node_modules/
+package-lock.json
+package.json
