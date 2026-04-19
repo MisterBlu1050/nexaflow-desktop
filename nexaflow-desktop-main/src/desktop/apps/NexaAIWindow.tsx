@@ -4,6 +4,7 @@ import Window from "../Window";
 import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routeCommand } from '@/hooks/use-command-router';
+import { NEXAFLOW_SYSTEM_CONTEXT } from '@/lib/nexaflow-context';
 
 type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string };
 
@@ -150,7 +151,9 @@ export default function NexaAIWindow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "gemma4:latest",
-          system: routed?.systemPrompt ?? "You are NexaAI, CHRO assistant at NexaFlow SA.",
+          system: routed
+            ? `${NEXAFLOW_SYSTEM_CONTEXT}\n\n=== TASK ===\n${routed.systemPrompt}`
+            : NEXAFLOW_SYSTEM_CONTEXT,
           prompt: routed?.contextData
             ? `${routed.contextData}\n\nExecute the HR action.`
             : text,
