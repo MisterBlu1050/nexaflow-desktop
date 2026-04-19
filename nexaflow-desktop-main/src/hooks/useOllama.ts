@@ -1,25 +1,44 @@
 import { useState } from 'react';
-import { MODELS, DEFAULT_CONTEXT, DEEP_CONTEXT } from '../config/llmConfig';
+import { DEFAULT_PRESET, LLM_PRESETS, type LlmPresetKey } from '../config/llmConfig';
 
-export const useOllama = () => {
-  const [model, setModel] = useState<string>(MODELS.FAST);
-  const [deepMode, setDeepMode] = useState<boolean>(false);
+export function useOllama() {
+  const [preset, setPreset] = useState<LlmPresetKey>(DEFAULT_PRESET);
+  const [deepMode, setDeepMode] = useState(false);
 
-  const generate = async (prompt: string, systemPrompt?: string) => {
-    const ctx = deepMode ? DEEP_CONTEXT : DEFAULT_CONTEXT;
+  const activeModel = LLM_PRESETS[preset].ollamaModel;
+  const activeContext = deepMode ? LLM_PRESETS.deep.context : LLM_PRESETS[preset].context;
+
+  const generate = async (prompt: string, options: Record<string, unknown> = {}) => {
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model,
-        system: systemPrompt,
+        model: activeModel,
         prompt,
-        options: { num_ctx: ctx },
-        stream: false
-      })
+        stream: false,
+        options: {
+          num_ctx: activeContext,
+          ...options,
+        },
+      }),
     });
-    return response.json();
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Ollama request failed');
+    }
+
+    return data;
   };
 
-  return { model, setModel, deepMode, setDeepMode, generate };
-};
+  return {
+    preset,
+    setPreset,
+    deepMode,
+    setDeepMode,
+    activeModel,
+    activeContext,
+    generate,
+  };
+}

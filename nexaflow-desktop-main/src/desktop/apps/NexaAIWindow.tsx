@@ -8,7 +8,7 @@ import { callGemini } from '@/lib/gemini-client';
 import { NEXAFLOW_SYSTEM_CONTEXT } from '@/lib/nexaflow-context';
 import { useOllama } from '@/hooks/useOllama';
 import { exportMemoPdf } from '@/utils/pdfExporter';
-import { MODELS as OLLAMA_MODELS } from '@/config/llmConfig';
+import { LLM_PRESETS, type LlmPresetKey } from '@/config/llmConfig';
 
 type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine; title?: string };
 
@@ -58,8 +58,8 @@ const SUGGESTIONS = [
 const SHORTCUTS = ["/comp-analysis", "/draft-offer", "/onboarding", "/people-report", "/performance-review", "/policy-lookup", "/cas-001", "/cas-002"];
 
 const MODELS = [
-  { id: OLLAMA_MODELS.FAST, icon: "✦", label: "Gemma 4 · Rapide", badge: "default" },
-  { id: OLLAMA_MODELS.DEEP, icon: "✦", label: "Gemma 4 · Profond" },
+  { id: "fast", icon: "✦", label: LLM_PRESETS.fast.label, badge: "default" },
+  { id: "deep", icon: "✦", label: LLM_PRESETS.deep.label },
   { id: "gemini", icon: "◆", label: "Gemini 2.5 Flash · Cloud" },
   { id: "offline", icon: "○", label: "Offline mode" },
 ];
@@ -119,7 +119,7 @@ export default function NexaAIWindow() {
   const ctx = useDesktop((s) => s.nexaContext);
   const setPrefill = useDesktop((s) => s.setNexaPrefill);
 
-  const { model: activeModel, setModel, deepMode, setDeepMode, generate: generateOllama } = useOllama();
+  const { preset, setPreset, deepMode, setDeepMode, activeModel, activeContext, generate: generateOllama } = useOllama();
   
   const [model, setModelState] = useState(MODELS[0]);
   const [modelOpen, setModelOpen] = useState(false);
@@ -205,7 +205,7 @@ export default function NexaAIWindow() {
               system: systemPrompt, 
               prompt: userPrompt, 
               stream: false,
-              options: { num_ctx: deepMode ? 32768 : 4096 }
+              options: { num_ctx: activeContext }
             }),
           });
           const data = await res.json();
@@ -223,7 +223,7 @@ export default function NexaAIWindow() {
               system: systemPrompt, 
               prompt: userPrompt, 
               stream: false,
-              options: { num_ctx: deepMode ? 32768 : 4096 }
+              options: { num_ctx: activeContext }
             }),
           });
           const data = await res.json();
@@ -362,7 +362,7 @@ export default function NexaAIWindow() {
                         key={m.id}
                         onClick={() => { 
                           setModelState(m); 
-                          if (m.id !== "gemini" && m.id !== "offline") setModel(m.id);
+                          if (m.id === "fast" || m.id === "deep") setPreset(m.id as LlmPresetKey);
                           setModelOpen(false); 
                         }}
                         className="w-full text-left px-3 py-2 text-[12px] hover:bg-claude-sidebar flex items-center gap-2"
