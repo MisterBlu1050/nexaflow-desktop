@@ -1,0 +1,175 @@
+name: inter-referential-mapper
+description: Mapper les compétences de l'addenda Competentiewoordenboek_AI de Bruno Mineo aux référentiels internationaux majeurs (UNESCO Recommendation on the Ethics of AI 2021, EU AI Act Regulation 2024/1689, DigComp 2.2, OECD AI Capability Indicators 2024, WEF Future of Jobs 2025, UNESCO/Digitaal Vlaanderen Ethisch AI-Geletterdheidskader 2025). Utiliser cette skill quand Bruno demande un mapping, une correspondance, un tableau croisé, une vérification de couverture d'une compétence par les cadres existants, l'identification d'une lacune réglementaire, ou la justification de l'originalité d'une compétence. Déclencheurs : "mappe cette compétence", "couverture DigComp", "article AI Act correspondant", "quel principe UNESCO", "lacune dans les référentiels", "tableau de correspondance", "justifier l'originalité", "cross-reference", "mapping inter-référentiels". Toujours utiliser cette skill pour toute production de correspondances entre les compétences de l'addenda et les cadres externes.
+Inter-Referential Mapper
+Objectif de la skill
+Produire, pour chaque compétence de l'addenda Competentiewoordenboek_AI, un mapping rigoureux et vérifiable vers les référentiels internationaux majeurs qui couvrent les compétences liées à l'IA. Ce mapping a trois fonctions stratégiques :
+
+Démontrer la complémentarité de l'addenda avec les cadres existants, pas sa redondance.
+Identifier et nommer explicitement les lacunes des référentiels existants — ce qui constitue l'argument de vente principal de l'addenda.
+Offrir aux lecteurs (DRH, consultants, évaluateurs AgO) un outil de compliance directement utilisable pour aligner leurs pratiques sur les obligations légales (AI Act) et les recommandations internationales.
+
+Cette skill existe parce que le mapping inter-référentiels est un acte de rigueur académique : toute correspondance fabriquée, approximative ou non vérifiée affaiblit immédiatement la crédibilité de l'ensemble du document. La règle absolue est : en cas de doute, ne pas mapper.
+Les six référentiels à couvrir systématiquement
+1. UNESCO Recommendation on the Ethics of Artificial Intelligence (2021)
+
+Référence canonique : UNESCO. (2022). Recommendation on the ethics of artificial intelligence. Paris: UNESCO, 43 p. Adopted 23 November 2021. UNESDOC ark:/48223/pf0000380455.
+Applicabilité : 194 États membres de l'UNESCO, instrument ONU au sens strict.
+Éléments mappables :
+
+Les 4 valeurs fondatrices (Human rights and human dignity ; Peaceful, just and interconnected societies ; Diversity and inclusiveness ; Environment and ecosystem flourishing)
+Les 10 principes (Proportionality and do no harm ; Safety and security ; Right to privacy and data protection ; Multi-stakeholder and adaptive governance ; Responsibility and accountability ; Transparency and explainability ; Human oversight and determination ; Sustainability ; Awareness and literacy ; Fairness and non-discrimination)
+Les 11 Policy Action Areas (Ethical Impact Assessment ; Data Governance ; Development and international cooperation ; Environment and ecosystems ; Gender ; Culture ; Education and research ; Communication and information ; Economy and labour ; Health and social well-being ; Governance)
+
+
+
+2. EU AI Act — Regulation (EU) 2024/1689
+
+Référence canonique : Regulation (EU) 2024/1689 of the European Parliament and of the Council of 13 June 2024 laying down harmonised rules on artificial intelligence (Artificial Intelligence Act) [2024] OJ L 2024/1689. ELI : http://data.europa.eu/eli/reg/2024/1689/oj
+Applicabilité : obligation légale pour tous les déployeurs et fournisseurs d'IA dans l'UE. Application générale à partir du 2 août 2026.
+Articles prioritaires pour l'addenda :
+
+Article 4 — AI literacy : obligation pour fournisseurs et déployeurs de garantir un niveau suffisant d'alphabétisation IA de leur personnel. C'est l'ancrage légal direct de tout l'addenda.
+Article 5 — Prohibited AI practices : pratiques interdites, à connaître pour savoir ce qu'aucune compétence ne doit normaliser.
+Article 9 — Risk management system : pertinent pour les compétences touchant à l'évaluation des risques.
+Article 10 — Data and data governance : pertinent pour toute compétence touchant aux données personnelles ou sensibles.
+Article 13 — Transparency and provision of information to deployers : ancrage pour les compétences de transparence.
+Article 14 — Human oversight : ancrage direct de la compétence 1 du diptyque (regie behouden, gerafelde grens, metacognitieve dimensie).
+Article 26 — Obligations of deployers of high-risk AI systems : pertinent pour les compétences managériales et décisionnelles.
+Article 50 — Transparency obligations for providers and deployers of certain AI systems : ancrage direct de toute compétence de "Transparante AI-communicatie".
+
+
+
+3. DigComp 2.2 (European Commission / JRC, 2022)
+
+Référence canonique : Vuorikari, R., Kluzer, S., & Punie, Y. (2022). DigComp 2.2: The Digital Competence Framework for Citizens. Publications Office of the European Union. Luxembourg. EUR 31006 EN. doi:10.2760/115376.
+Applicabilité : cadre européen de compétences numériques, référence transversale pour l'éducation et la formation.
+Structure : 5 domaines, 21 compétences. Les domaines pertinents pour l'IA :
+
+Domaine 1 — Information and data literacy (1.1 Browsing, searching, filtering data ; 1.2 Evaluating data, information and digital content ; 1.3 Managing data, information and digital content)
+Domaine 2 — Communication and collaboration (2.1 à 2.6, dont 2.3 Engaging in citizenship through digital technologies)
+Domaine 3 — Digital content creation (dont 3.1 Developing digital content)
+Domaine 4 — Safety (4.1 Protecting devices ; 4.2 Protecting personal data and privacy ; 4.3 Protecting health and well-being ; 4.4 Protecting the environment)
+Domaine 5 — Problem solving (5.1 Solving technical problems ; 5.2 Identifying needs and technological responses ; 5.3 Creatively using digital technologies ; 5.4 Identifying digital competence gaps)
+
+
+Note critique : DigComp 2.2 mentionne l'IA dans ses exemples mais ne la traite pas comme un domaine autonome. C'est une lacune structurelle que l'addenda peut explicitement combler.
+
+4. OECD AI Capability Indicators (2024)
+
+Référence canonique : OECD. (2024). OECD AI Capability Indicators. OECD Publishing, Paris.
+Applicabilité : cadre de mesure des capacités IA à l'échelle nationale et organisationnelle. Orienté macro plutôt que compétences individuelles.
+Usage dans le mapping : utiliser principalement pour ancrer les compétences de niveau IV (expert, organisationnel) qui touchent à la politique d'entreprise, pas pour les niveaux I-II.
+
+5. WEF Future of Jobs Report 2025
+
+Référence canonique : World Economic Forum. (2025). Future of Jobs Report 2025. Geneva: WEF.
+Applicabilité : identification des compétences émergentes sur le marché du travail. Utile pour justifier la pertinence stratégique d'une compétence, pas pour la graduer.
+Usage dans le mapping : citer les "skills on the rise" identifiés par le rapport pour démontrer l'alignement de l'addenda avec les besoins anticipés du marché.
+
+6. UNESCO & Digitaal Vlaanderen — Ethisch AI-Geletterdheidskader voor overheden (décembre 2025)
+
+Référence canonique : UNESCO & Digitaal Vlaanderen. (2025). Ethisch AI-Geletterdheidskader voor overheden. Brussel/Parijs.
+Applicabilité : cadre d'alphabétisation IA pour les administrations, avec ancrage flamand direct.
+Usage dans le mapping : c'est le référentiel le plus proche de l'addenda et donc celui dont l'addenda doit se démarquer le plus explicitement. Pour chaque compétence de l'addenda, nommer : (a) ce que le cadre 2025 couvre, (b) ce qu'il ne couvre pas, (c) pourquoi l'addenda va plus loin.
+
+Format de sortie standardisé
+Chaque mapping de compétence doit être produit dans le format suivant, en markdown ou en tableau .xlsx selon la demande :
+## Compétence : [Nom exact de la compétence NL]
+Cluster : [I à VI]
+Version addenda : [v2.0 ou autre]
+
+### Mapping inter-référentiels
+
+| Référentiel | Élément spécifique | Type de correspondance | Niveau de couverture | Note |
+|---|---|---|---|---|
+| UNESCO 2021 | Principe 7 — Human oversight and determination | Directe | Totale | Alignement complet sur la préservation de la regie humaine |
+| EU AI Act | Article 14 — Human oversight | Directe | Partielle | L'article impose l'obligation, la compétence la rend observable |
+| DigComp 2.2 | 5.2 Identifying needs and technological responses | Indirecte | Partielle | DigComp ne traite pas la dimension métacognitive |
+| OECD 2024 | — | Aucune | — | Hors scope (cadre macro) |
+| WEF 2025 | Analytical thinking (top 1 skill on the rise) | Contextuelle | — | Justifie la pertinence stratégique |
+| UNESCO/Vl 2025 | Pilier "Verantwoord gebruik" | Partielle | Partielle | Ne comporte pas de gradation en 4 niveaux, ne nomme pas la gerafelde grens |
+
+### Lacune(s) comblée(s) par la compétence
+
+[1 à 3 paragraphes nommant explicitement ce qu'aucun des six référentiels ne couvre et que l'addenda apporte.]
+
+### Apport original de Bruno Mineo
+
+[1 paragraphe distinguant ce qui relève d'une synthèse des référentiels existants et ce qui constitue une contribution conceptuelle nouvelle.]
+Typologie des correspondances
+Pour éviter l'approximation, utiliser systématiquement l'une de ces cinq catégories :
+
+Directe : le référentiel nomme explicitement le comportement ou le principe décrit par la compétence. Citer l'article ou la section exacte.
+Indirecte : le référentiel traite d'un principe plus large dont la compétence est une déclinaison opérationnelle. Expliciter le lien.
+Contextuelle : le référentiel justifie la pertinence stratégique de la compétence sans la définir (typiquement WEF, OECD).
+Partielle : le référentiel couvre une partie de la compétence mais manque une dimension importante (à nommer explicitement).
+Aucune : aucun élément du référentiel ne correspond. Cette absence est souvent le point le plus fort du mapping : c'est elle qui justifie l'addenda. Ne jamais la masquer.
+
+Niveaux de couverture
+Qualifier la couverture d'une correspondance par l'un de ces trois niveaux :
+
+Totale : le référentiel couvre tous les niveaux I-IV de la compétence.
+Partielle : le référentiel couvre certains niveaux (typiquement I-II) mais pas d'autres (typiquement III-IV, les niveaux métacognitifs et organisationnels).
+Absente : aucun niveau n'est couvert.
+
+Si une correspondance est Directe mais Partielle, le document doit l'expliquer : c'est typiquement le cas où un cadre légal impose une obligation (AI Act art. 14 : "human oversight shall be ensured") sans dire comment cette obligation se traduit en comportements observables et gradués. C'est exactement le rôle de l'addenda.
+Règles de rigueur absolues
+Ce qui est interdit
+
+Fabriquer une correspondance. Si aucune correspondance n'existe, écrire "Aucune" et l'assumer comme un résultat valide.
+Citer un article d'un référentiel sans l'avoir vérifié. En cas de doute sur le numéro exact d'un article ou d'un principe, recommander une recherche web et suspendre le mapping.
+Sur-qualifier une correspondance (dire "Directe" quand elle est "Indirecte" pour paraître plus convaincant). L'honnêteté méthodologique est non négociable.
+Omettre une non-correspondance inconfortable. Si le cadre 2025 UNESCO/Digitaal Vlaanderen couvre déjà une compétence proposée, le dire clairement — et reformuler la compétence ou l'abandonner.
+Citer des sources secondaires (blogs, résumés, commentaires) à la place des textes primaires. Le mapping doit s'ancrer exclusivement sur les textes officiels.
+
+Ce qui est obligatoire
+
+Toujours citer l'article ou la section exacte d'un référentiel. "AI Act" ne suffit pas : il faut "AI Act, Article 14, paragraph 2".
+Toujours vérifier que le référentiel cité est bien dans la version à jour. L'AI Act a connu plusieurs versions avant publication au Journal officiel ; seule la version OJ 2024/1689 du 12 juillet 2024 est canonique.
+Toujours distinguer l'obligation légale (AI Act) de la recommandation éthique (UNESCO) et du cadre éducatif (DigComp). Ce ne sont pas des instruments de même nature et le mapping doit le refléter.
+Toujours nommer la lacune comblée en fin de mapping. C'est la valeur ajoutée qualitative de l'addenda.
+Toujours distinguer la synthèse (reformulation créative de contenus existants) de la contribution originale (concept ou approche absent des référentiels). La paternité conceptuelle est un enjeu de crédibilité central pour Bruno.
+
+Protocole d'usage de la skill
+Quand Bruno demande un mapping :
+
+Identifier la compétence cible — nom exact, cluster, version de l'addenda.
+Pour chacun des six référentiels, chercher explicitement une correspondance. Ne jamais sauter un référentiel. L'absence de correspondance est un résultat en soi.
+Qualifier chaque correspondance avec le vocabulaire typologique (Directe / Indirecte / Contextuelle / Partielle / Aucune) + niveau de couverture (Totale / Partielle / Absente).
+Citer les articles, principes ou domaines exacts — jamais de référence vague.
+Rédiger la section "Lacune(s) comblée(s)" en nommant ce qu'aucun référentiel ne couvre.
+Rédiger la section "Apport original" en distinguant synthèse et contribution nouvelle.
+Appliquer la checklist de validation (voir ci-dessous) avant livraison.
+Signaler tout point de doute ouvertement — ne jamais livrer un mapping "probablement correct" sans le marquer comme tel.
+
+Checklist de validation d'un mapping
+Avant livraison, vérifier :
+
+ Les six référentiels ont été examinés individuellement
+ Chaque correspondance est typologiée (Directe / Indirecte / Contextuelle / Partielle / Aucune)
+ Chaque correspondance a un niveau de couverture (Totale / Partielle / Absente)
+ Chaque article ou principe cité l'est avec son numéro ou nom exact
+ Aucune correspondance n'a été fabriquée ou approximée
+ Les non-correspondances inconfortables sont explicitées, pas masquées
+ La section "Lacune comblée" nomme précisément ce qui manque dans les référentiels
+ La section "Apport original" distingue synthèse et contribution nouvelle
+ Le format de sortie est conforme (tableau standardisé ou .xlsx)
+ Toute incertitude restante est signalée explicitement
+
+Cas particulier : les compétences en tension avec le cadre 2025 UNESCO/Digitaal Vlaanderen
+Le cadre 2025 est le plus proche de l'addenda et donc le plus susceptible de couvrir des compétences proposées. Pour chaque compétence, appliquer le test suivant :
+
+Le cadre 2025 couvre-t-il ce comportement ?
+Si oui, à quel niveau de granularité ? (Principe général / indicateur observable / gradation en niveaux ?)
+Qu'est-ce que l'addenda apporte que le cadre 2025 n'apporte pas ? (Typiquement : gradation fine en 4 niveaux, ancrage dans un cluster du référentiel flamand officiel, dimension métacognitive, opérationnalisation en contexte HR.)
+
+Si le test révèle que le cadre 2025 couvre totalement la compétence sans lacune identifiable, il faut avoir le courage de le dire à Bruno : la compétence n'apporte rien, elle doit être abandonnée ou reformulée. Cette honnêteté est le prix de la crédibilité de l'ensemble.
+Ce que cette skill ne fait pas
+
+Elle ne rédige pas les compétences elles-mêmes (c'est le rôle de competentiewoordenboek-writer).
+Elle ne tranche pas les désaccords d'interprétation juridique (pour l'AI Act, en cas de doute réel, recommander une lecture directe du texte OJ).
+Elle ne produit pas de veille sur les nouveaux référentiels publiés après mars 2026 — si Bruno signale un nouveau cadre, la skill doit être mise à jour.
+Elle ne remplace pas la vérification humaine finale : tout mapping produit est un brouillon rigoureux que Bruno doit relire avant toute publication.
+
+Versioning de la skill
+v1.0 — avril 2026, Bruno Mineo + Claude (Anthropic).

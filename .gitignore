@@ -1,0 +1,19 @@
+node_modules/
+dist/
+build/
+.env
+.venv/
+.cache/
+/.idea/
+.DS_Store
+/.parcel-cache/
+.turbo/
+/.next/
+/.vite/
+*.log
+
+# Sensitive / large exported files kept locally only
+NexaFlow_SIRH_500.xlsx
+NexaFlow_Company_Bible_500.docx
+*.xlsx
+*.docx
