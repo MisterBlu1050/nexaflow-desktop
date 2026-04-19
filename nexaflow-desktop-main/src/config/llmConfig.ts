@@ -1,18 +1,23 @@
 export type LlmPresetKey = 'fast' | 'deep';
 
-export const LLM_PRESETS: Record<LlmPresetKey, {
+export interface LlmPreset {
   label: string;
-  ollamaModel: string;
+  preferredModel: string;
+  fallbackModel: string;
   context: number;
-}> = {
+}
+
+export const LLM_PRESETS: Record<LlmPresetKey, LlmPreset> = {
   fast: {
     label: 'Gemma 4 · Rapide',
-    ollamaModel: 'gemma3:4b',
+    preferredModel: 'gemma4:latest', // From user's ollama list
+    fallbackModel: 'llama3.2:3b',    // Light fallback
     context: 4096,
   },
   deep: {
     label: 'Gemma 4 · Profond',
-    ollamaModel: 'gemma3:27b',
+    preferredModel: 'gemma4:26b',    // Heavy model for deep analysis
+    fallbackModel: 'gemma3:27b',    // Alternative heavy model
     context: 32768,
   },
 };

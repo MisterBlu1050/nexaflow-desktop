@@ -119,7 +119,16 @@ export default function NexaAIWindow() {
   const ctx = useDesktop((s) => s.nexaContext);
   const setPrefill = useDesktop((s) => s.setNexaPrefill);
 
-  const { preset, setPreset, deepMode, setDeepMode, activeModel, activeContext, generate: generateOllama } = useOllama();
+  const { 
+    preset, 
+    setPreset, 
+    deepMode, 
+    setDeepMode, 
+    activeModel, 
+    activeContext, 
+    isResolving,
+    generate: generateOllama 
+  } = useOllama();
   
   const [model, setModelState] = useState(MODELS[0]);
   const [modelOpen, setModelOpen] = useState(false);
@@ -349,14 +358,22 @@ export default function NexaAIWindow() {
               <div className="relative">
                 <button
                   onClick={() => setModelOpen((v) => !v)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-claude-border bg-white hover:bg-claude-sidebar text-[12px]"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-claude-border bg-white hover:bg-claude-sidebar text-[12px] min-w-[140px]"
+                  disabled={isResolving}
                 >
-                  <span>{model.icon}</span>
-                  <span>{model.label}</span>
+                  {isResolving ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <span>{model.icon}</span>
+                  )}
+                  <span className="flex-1 text-left">{isResolving ? "Resolving..." : model.label}</span>
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 {modelOpen && (
                   <div className="absolute right-0 top-10 w-64 bg-white border border-claude-border rounded-md shadow-lg z-10 py-1">
+                    <div className="px-3 py-1.5 text-[10px] text-claude-muted border-b border-claude-border mb-1">
+                      Target: {activeModel}
+                    </div>
                     {MODELS.map((m) => (
                       <button
                         key={m.id}
@@ -492,7 +509,9 @@ export default function NexaAIWindow() {
               <div className="text-[11px] text-claude-muted text-center mt-3 flex items-center justify-center gap-2">
                 <span>NexaAI · GDPR compliant ·</span>
                 <EngineBadge engine="ollama" />
-                <span>standard</span>
+                <span className="font-mono text-[10px] bg-slate-100 px-1 rounded border overflow-hidden truncate max-w-[100px]" title={activeModel}>
+                  {activeModel}
+                </span>
                 <span className="opacity-40">|</span>
                 <EngineBadge engine="gemini" />
                 <span>deep analysis (/cas-*, --deep)</span>
