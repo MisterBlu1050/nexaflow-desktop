@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useDesktop } from "../store";
 import Window from "../Window";
-import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles, Zap, Bot } from "lucide-react";
+import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles, Zap, Bot, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routeCommand, type LLMEngine } from '@/hooks/use-command-router';
 import { callGemini } from '@/lib/gemini-client';
 import { NEXAFLOW_SYSTEM_CONTEXT } from '@/lib/nexaflow-context';
+import { useOllama } from '@/hooks/useOllama';
+import { exportMemoPdf } from '@/utils/pdfExporter';
+import { MODELS as OLLAMA_MODELS } from '@/config/llmConfig';
 
-type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine };
+type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine; title?: string };
 
 /** Pill badge shown in each assistant card */
 function EngineBadge({ engine }: { engine: LLMEngine }) {
@@ -55,7 +58,8 @@ const SUGGESTIONS = [
 const SHORTCUTS = ["/comp-analysis", "/draft-offer", "/onboarding", "/people-report", "/performance-review", "/policy-lookup", "/cas-001", "/cas-002"];
 
 const MODELS = [
-  { id: "gemma-local", icon: "✦", label: "Gemma 4 · Local", badge: "default" },
+  { id: OLLAMA_MODELS.FAST, icon: "✦", label: "Gemma 4 · Rapide", badge: "default" },
+  { id: OLLAMA_MODELS.DEEP, icon: "✦", label: "Gemma 4 · Profond" },
   { id: "gemini", icon: "◆", label: "Gemini 2.5 Flash · Cloud" },
   { id: "offline", icon: "○", label: "Offline mode" },
 ];
@@ -115,7 +119,9 @@ export default function NexaAIWindow() {
   const ctx = useDesktop((s) => s.nexaContext);
   const setPrefill = useDesktop((s) => s.setNexaPrefill);
 
-  const [model, setModel] = useState(MODELS[0]);
+  const { model: activeModel, setModel, deepMode, setDeepMode, generate: generateOllama } = useOllama();
+  
+  const [model, setModelState] = useState(MODELS[0]);
   const [modelOpen, setModelOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -194,7 +200,13 @@ export default function NexaAIWindow() {
           const res = await fetch('http://localhost:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: 'gemma4:latest', system: systemPrompt, prompt: userPrompt, stream: false }),
+            body: JSON.stringify({ 
+              model: activeModel, 
+              system: systemPrompt, 
+              prompt: userPrompt, 
+              stream: false,
+              options: { num_ctx: deepMode ? 32768 : 4096 }
+            }),
           });
           const data = await res.json();
           reply = data.response ?? JSON.stringify(data);
@@ -206,7 +218,13 @@ export default function NexaAIWindow() {
           const res = await fetch('http://localhost:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: 'gemma4:latest', system: systemPrompt, prompt: userPrompt, stream: false }),
+            body: JSON.stringify({ 
+              model: activeModel, 
+              system: systemPrompt, 
+              prompt: userPrompt, 
+              stream: false,
+              options: { num_ctx: deepMode ? 32768 : 4096 }
+            }),
           });
           const data = await res.json();
           reply = data.response ?? JSON.stringify(data);
@@ -223,6 +241,8 @@ export default function NexaAIWindow() {
       setMessages((m) => [...m, {
         role: 'assistant',
         engine,
+        title: routed?.title,
+        raw: reply,
         content: (
           <div className="space-y-3">
             {routed && (
@@ -316,30 +336,45 @@ export default function NexaAIWindow() {
               <Sparkles className="w-4 h-4 text-claude-accent" />
               <span>NexaAI · People Assistant</span>
             </div>
-            <div className="relative">
-              <button
-                onClick={() => setModelOpen((v) => !v)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-claude-border bg-white hover:bg-claude-sidebar text-[12px]"
-              >
-                <span>{model.icon}</span>
-                <span>{model.label}</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-              {modelOpen && (
-                <div className="absolute right-0 top-10 w-64 bg-white border border-claude-border rounded-md shadow-lg z-10 py-1">
-                  {MODELS.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => { setModel(m); setModelOpen(false); }}
-                      className="w-full text-left px-3 py-2 text-[12px] hover:bg-claude-sidebar flex items-center gap-2"
-                    >
-                      <span>{m.icon}</span>
-                      <span className="flex-1">{m.label}</span>
-                      {m.badge && <span className="text-[10px] text-claude-muted">{m.badge}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-[12px] cursor-pointer hover:opacity-80 transition">
+                <input 
+                  type="checkbox" 
+                  checked={deepMode} 
+                  onChange={(e) => setDeepMode(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-claude-accent"
+                />
+                <span className={cn(deepMode && "font-bold text-claude-accent")}>Mode deep</span>
+              </label>
+              <div className="relative">
+                <button
+                  onClick={() => setModelOpen((v) => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-claude-border bg-white hover:bg-claude-sidebar text-[12px]"
+                >
+                  <span>{model.icon}</span>
+                  <span>{model.label}</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+                {modelOpen && (
+                  <div className="absolute right-0 top-10 w-64 bg-white border border-claude-border rounded-md shadow-lg z-10 py-1">
+                    {MODELS.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => { 
+                          setModelState(m); 
+                          if (m.id !== "gemini" && m.id !== "offline") setModel(m.id);
+                          setModelOpen(false); 
+                        }}
+                        className="w-full text-left px-3 py-2 text-[12px] hover:bg-claude-sidebar flex items-center gap-2"
+                      >
+                        <span>{m.icon}</span>
+                        <span className="flex-1">{m.label}</span>
+                        {m.badge && <span className="text-[10px] text-claude-muted">{m.badge}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -384,6 +419,14 @@ export default function NexaAIWindow() {
                           <button className="p-1.5 rounded hover:bg-white"><ThumbsDown className="w-3.5 h-3.5" /></button>
                           <button className="p-1.5 rounded hover:bg-white"><RefreshCw className="w-3.5 h-3.5" /></button>
                           <button className="p-1.5 rounded hover:bg-white"><Copy className="w-3.5 h-3.5" /></button>
+                          <button 
+                            onClick={() => exportMemoPdf({ title: m.title || "NexaFlow Memo", content: m.raw || "" })} 
+                            className="p-1.5 rounded hover:bg-white text-claude-accent flex items-center gap-1"
+                            title="Export PDF COMEX"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium">PDF</span>
+                          </button>
                         </div>
                       )}
                     </div>
