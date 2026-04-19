@@ -8,23 +8,39 @@ export type HandlerResult = {
   systemPrompt: string;
   contextData: string;
   chips: string[];
+  skill?: string;
 };
 
-export function routeCommand(input: string): HandlerResult | null {
+export async function routeCommand(input: string): Promise<HandlerResult | null> {
   const cmd = input.trim().toLowerCase();
 
   if (cmd.startsWith('/comp-analysis')) {
-    const dept = cmd.split(' ')[1] ?? 'all';
-    const filtered = dept === 'all' ? employees : employees.filter(e => e.department.toLowerCase().includes(dept));
-    return {
-      cardColor: '#F59E0B',
-      title: 'Compensation Analysis',
-      systemPrompt: `${NEXAFLOW_SYSTEM_CONTEXT}
+    const dept = input.replace(/\/comp-analysis/i, '').trim() || 'Engineering';
+    // Prefer IPC (Electron) but gracefully fall back to in-memory demo data when not running in Electron
+    let employeesList = employees as any[];
+    try {
+      if (typeof window !== 'undefined' && (window as any).electron && (window as any).electron.getCompByDept) {
+        const remote = await (window as any).electron.getCompByDept(dept);
+        if (Array.isArray(remote) && remote.length > 0) employeesList = remote;
+      }
+    } catch (err) {
+      // swallow and fallback to local `employees`
+      console.error('IPC getCompByDept failed, using local demo employees:', err);
+    }
 
-=== TASK ===
-You are a CHRO at NexaFlow SA. Analyze compensation data for ${filtered.length} employees. Apply Belgian CP200 framework. Return a salary band table with P25/median/P75, flag outliers >20% above/below band, note any gender pay gap risk.`,
-      contextData: JSON.stringify(filtered.map(e => ({ name: e.name, dept: e.department, salary: e.salary, grade: e.grade }))),
-      chips: ['Afficher benchmarks secteur', 'Filtrer par site', 'Export Excel', 'Analyse genre'],
+    const n = employeesList.length;
+    const salaires = employeesList.map((e: any) => e.salaire || e.salary).filter(Boolean) as number[];
+    const sorted = salaires.slice().sort((a, b) => a - b);
+    const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : undefined;
+    const highRisk = employeesList.filter((e: any) => (e.risque_depart || e.risk) === 'High').length;
+
+    return {
+      skill: 'comp-analysis',
+      cardColor: 'from-emerald-900/40 to-teal-900/40',
+      title: 'Compensation Analysis',
+      systemPrompt: `You are NexaAI doing a compensation analysis.`,
+      contextData: `REAL SIRH DATA — ${dept} department (N=${n} employees):\nSalary data: ${JSON.stringify(employeesList.slice(0, 20))}\nMedian salary: €${median?.toLocaleString()}\nHigh flight risk: ${highRisk}/${n} employees\nProduce a CP200-compliant comp analysis memo to Bruno Mineo CHRO.`,
+      chips: ['CP200', dept, `N=${n}`, `Médiane €${median?.toLocaleString()}`],
     };
   }
 

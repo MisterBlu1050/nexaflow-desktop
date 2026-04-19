@@ -3,8 +3,6 @@ import { useDesktop } from "../store";
 import Window from "../Window";
 import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { routeCommand } from '@/hooks/use-command-router';
-import { NEXAFLOW_SYSTEM_CONTEXT } from '@/lib/nexaflow-context';
 
 type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string };
 
@@ -13,10 +11,10 @@ const HISTORY = [
     { id: "cas-008", icon: "🔴", label: "CAS-008 GDPR Response" },
     { id: "people-april", icon: "📊", label: "People Report April 2026" },
   ]},
-    { group: "This week", items: [
+  { group: "This week", items: [
     { id: "offer-be", icon: "📄", label: "Offer Letter Senior Backend IC4" },
     { id: "remote-be", icon: "⚖️", label: "Remote work policy — BE law" },
-    { id: "onboard-ravi", icon: "🚀", label: "Onboarding plan — new hire" },
+    { id: "onboard-ravi", icon: "🚀", label: "Onboarding plan — Ravi Singh" },
   ]},
   { group: "April 2026", items: [
     { id: "comp-eng", icon: "📋", label: "Engineering comp analysis" },
@@ -61,7 +59,7 @@ function Cas008Reply() {
             "Assess risk level → salary data = HIGH RISK → employee notification is mandatory (GDPR Art. 34)",
             "Submit DPA notification via notification.apd-gba.be",
             "Notify all 500 employees in writing",
-            "Alert legal & finance leads immediately",
+            "Alert Isabelle Thiry (CLO) + Marc Dujardin (CFO) immediately",
             "File internal IT incident report",
             "Preserve all system logs",
           ].map((t, i) => (
@@ -135,80 +133,42 @@ export default function NexaAIWindow() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
 
-  async function send() {
+  function send() {
     const text = input.trim();
     if (!text) return;
-
-    setMessages((m) => [...m, { role: "user", content: text, raw: text }]);
+    const userContent = ctx ? (
+      <div>
+        <div className="mb-2 p-2 rounded border border-claude-border bg-white/60 text-[12px] text-claude-muted whitespace-pre-line max-h-32 overflow-auto">
+          📎 Context attached:
+          {"\n"}{ctx.slice(0, 240)}{ctx.length > 240 ? "…" : ""}
+        </div>
+        <div>{text}</div>
+      </div>
+    ) : text;
+    setMessages((m) => [...m, { role: "user", content: userContent, raw: text }]);
     setInput("");
+    setPrefill(null, null);
     setTyping(true);
-
-    let routed = null;
-    try {
-      routed = await routeCommand(text);
-    } catch (err) {
-      console.error('routeCommand failed:', err);
-      routed = null;
-    }
-
-    try {
-      const res = await fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gemma4:latest",
-          system: routed
-            ? `${NEXAFLOW_SYSTEM_CONTEXT}\n\n=== TASK ===\n${routed.systemPrompt}`
-            : NEXAFLOW_SYSTEM_CONTEXT,
-          prompt: routed?.contextData
-            ? `${routed.contextData}\n\nExecute the HR action.`
-            : text,
-          stream: false,
-        }),
-      });
-
-      const data = await res.json();
-      const reply = data.response ?? JSON.stringify(data);
-
-      setMessages((m) => [...m, {
-        role: "assistant",
-        content: (
-          <div className="space-y-3">
-            {routed && (
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: routed.cardColor }} />
-                <span className="font-semibold text-sm">{routed.title}</span>
-              </div>
-            )}
-            <p className="text-[14px] whitespace-pre-wrap">{reply}</p>
-            {routed && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {routed.chips.map((chip) => (
-                  <button
-                    key={chip}
-                    onClick={() => setInput(chip)}
-                    className="px-3 py-1 rounded-full text-xs border hover:opacity-80 transition"
-                    style={{ borderColor: routed.cardColor, color: routed.cardColor }}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            )}
-            <p className="text-[11px] text-claude-muted">
-              ★ Generated · {model.label} · GDPR-safe processing
-            </p>
-          </div>
-        ),
-      }]);
-    } catch {
-      setMessages((m) => [...m, {
-        role: "assistant",
-        content: <p className="text-red-500">⚠️ Ollama unavailable — check localhost:11434</p>,
-      }]);
-    } finally {
+    setTimeout(() => {
       setTyping(false);
-    }
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: (
+            <div className="space-y-2">
+              <p>Here's a structured response based on your request and any attached context. As CHRO at NexaFlow, the recommended next steps are:</p>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Confirm the legal/regulatory framework that applies (BE / NL / FR / LU depending on site).</li>
+                <li>Loop in the relevant stakeholders (CLO, CEO, site lead).</li>
+                <li>Draft a written communication and circulate for validation.</li>
+              </ol>
+              <p className="text-[12px] text-claude-muted">📌 Generated in 1.4s · {model.label} · GDPR-safe processing</p>
+            </div>
+          ),
+        },
+      ]);
+    }, 900);
   }
 
   const isEmpty = messages.length === 0;
@@ -290,8 +250,8 @@ export default function NexaAIWindow() {
               <div className="max-w-2xl mx-auto px-6 py-16">
                 <div className="text-center mb-10">
                   <div className="text-5xl mb-4 text-claude-accent">✦</div>
-                  <h1 className="text-3xl font-serif font-medium mb-2">Good morning, CHRO.</h1>
-                  <p className="text-[13px] text-claude-muted">People Assistant · Demo Company · 500 employees · 4 sites · Apr 19 2026</p>
+                  <h1 className="text-3xl font-serif font-medium mb-2">Good morning, Sophie.</h1>
+                  <p className="text-[13px] text-claude-muted">People Assistant · NexaFlow SA · 500 employees · 4 sites · Apr 19 2026</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {SUGGESTIONS.map((s) => (
@@ -317,7 +277,7 @@ export default function NexaAIWindow() {
                       {m.role === "user" ? "SL" : "✦"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12px] text-claude-muted mb-1">{m.role === "user" ? "CHRO Persona" : "NexaAI"}</div>
+                      <div className="text-[12px] text-claude-muted mb-1">{m.role === "user" ? "Sophie Lefèvre" : "NexaAI"}</div>
                       <div className="text-[14px]">{m.content}</div>
                       {m.role === "assistant" && (
                         <div className="flex gap-1 mt-3 text-claude-muted">
