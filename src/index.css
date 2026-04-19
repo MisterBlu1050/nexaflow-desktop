@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Windows 11 Desktop Emulation — Design System */
+
+@layer base {
+  :root {
+    --background: 215 45% 12%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 8% 14%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 220 8% 14%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 210 100% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 6% 22%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 6% 18%;
+    --muted-foreground: 220 5% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 6% 25%;
+    --input: 220 6% 22%;
+    --ring: 210 100% 42%;
+
+    --radius: 0.5rem;
+
+    /* Windows 11 specific tokens */
+    --win-taskbar: 0 0% 11%;
+    --win-titlebar: 0 0% 18%;
+    --win-window: 220 8% 16%;
+    --win-window-content: 220 6% 13%;
+    --win-blue: 210 100% 42%;
+    --win-accent-blue: 217 91% 60%;
+    --win-divider: 220 6% 22%;
+    --win-hover: 0 0% 100% / 0.06;
+    --win-active: 0 0% 100% / 0.1;
+
+    /* Gmail */
+    --gmail-red: 4 90% 58%;
+    --gmail-bg: 0 0% 100%;
+    --gmail-sidebar: 220 14% 96%;
+    --gmail-text: 220 9% 20%;
+    --gmail-muted: 220 9% 46%;
+    --gmail-hover: 220 13% 91%;
+
+    /* NexaAI / Claude */
+    --claude-bg: 30 20% 96%;
+    --claude-sidebar: 30 15% 92%;
+    --claude-text: 25 15% 15%;
+    --claude-muted: 25 8% 45%;
+    --claude-accent: 18 85% 55%;
+    --claude-border: 30 12% 85%;
+    --claude-card: 0 0% 100%;
+
+    /* Status */
+    --status-red: 0 84% 60%;
+    --status-orange: 25 95% 53%;
+    --status-yellow: 45 93% 47%;
+    --status-green: 142 71% 45%;
+    --status-blue: 210 100% 50%;
+
+    /* Wallpaper */
+    --wallpaper-from: 215 50% 12%;
+    --wallpaper-to: 215 45% 20%;
+
+    /* Shadows */
+    --shadow-window: 0 12px 48px -8px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-taskbar: 0 -4px 24px rgba(0,0,0,0.3);
+    --shadow-menu: 0 8px 32px rgba(0,0,0,0.5);
+
+    /* Transitions */
+    --tx-window: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body, #root { height: 100%; overflow: hidden; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Segoe UI Variable', 'Segoe UI', Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .wallpaper {
+    background:
+      radial-gradient(circle at 70% 30%, hsl(217 91% 25% / 0.4), transparent 50%),
+      radial-gradient(circle at 20% 80%, hsl(210 100% 30% / 0.3), transparent 50%),
+      linear-gradient(135deg, #0F1B2D 0%, #1A2F4A 100%);
+  }
+  .taskbar-glass {
+    background: hsl(var(--win-taskbar) / 0.78);
+    backdrop-filter: blur(40px) saturate(140%);
+    -webkit-backdrop-filter: blur(40px) saturate(140%);
+    border-top: 1px solid hsl(0 0% 100% / 0.08);
+  }
+  .menu-glass {
+    background: hsl(220 8% 14% / 0.85);
+    backdrop-filter: blur(40px) saturate(140%);
+    -webkit-backdrop-filter: blur(40px) saturate(140%);
+  }
+  .window-shadow { box-shadow: var(--shadow-window); }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(0 0% 100% / 0.15); border-radius: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 100% / 0.25); }
+
+  .scrollbar-light::-webkit-scrollbar { width: 8px; }
+  .scrollbar-light::-webkit-scrollbar-thumb {
+    background: hsl(220 9% 75%); border-radius: 4px;
+  }
+
+  .animate-window-open {
+    animation: window-open 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes window-open {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-slide-right {
+    animation: slide-right 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes slide-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .animate-slide-up {
+    animation: slide-up 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .typing-dot {
+    animation: typing-pulse 1.4s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing-pulse {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  .win-control:hover { background: hsl(0 0% 100% / 0.08); }
+  .win-control-close:hover { background: hsl(0 84% 50%); color: white; }
+
+  .desktop-icon {
+    @apply flex flex-col items-center gap-1 p-2 rounded cursor-pointer select-none;
+    transition: background 120ms;
+  }
+  .desktop-icon:hover { background: hsl(0 0% 100% / 0.1); }
+  .desktop-icon.selected { background: hsl(var(--win-blue) / 0.4); outline: 1px solid hsl(var(--win-blue) / 0.6); }
+  .desktop-icon-label {
+    @apply text-[11px] text-center leading-tight max-w-[88px] text-white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+}
