@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDesktop } from "../store";
 import Window from "../Window";
-import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles, Zap, Bot, FileText } from "lucide-react";
+import { Plus, ChevronDown, Paperclip, ArrowUp, ThumbsUp, ThumbsDown, RefreshCw, Copy, Sparkles, Zap, Bot, FileText, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routeCommand, type LLMEngine } from '@/hooks/use-command-router';
 import { callGemini } from '@/lib/gemini-client';
@@ -9,8 +9,9 @@ import { NEXAFLOW_SYSTEM_CONTEXT } from '@/lib/nexaflow-context';
 import { useOllama } from '@/hooks/useOllama';
 import { exportMemoPdf } from '@/utils/pdfExporter';
 import { LLM_PRESETS, type LlmPresetKey } from '@/config/llmConfig';
+import DiagramBubble, { extractDiagramJson } from './DiagramBubble';
 
-type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine; title?: string };
+type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine; title?: string; diagramJson?: string };
 
 /** Pill badge shown in each assistant card */
 function EngineBadge({ engine }: { engine: LLMEngine }) {
@@ -32,30 +33,30 @@ function EngineBadge({ engine }: { engine: LLMEngine }) {
 
 const HISTORY = [
   { group: "Today", items: [
-    { id: "cas-008", icon: "🔴", label: "CAS-008 GDPR Response" },
-    { id: "people-april", icon: "📊", label: "People Report April 2026" },
+    { id: "cas-003", icon: "🔴", label: "CAS-003 — Sales harassment complaint" },
+    { id: "people-april", icon: "📊", label: "People Report — April 2026" },
   ]},
-    { group: "This week", items: [
-    { id: "offer-be", icon: "📄", label: "Offer Letter Senior Backend IC4" },
-    { id: "remote-be", icon: "⚖️", label: "Remote work policy — BE law" },
-    { id: "onboard-ravi", icon: "🚀", label: "Onboarding plan — new hire" },
+  { group: "This week", items: [
+    { id: "cas-005", icon: "⚠️", label: "CAS-005 — Misclassified contractors (Engineering)" },
+    { id: "remote-be", icon: "⚖️", label: "Remote work policy — Belgian law" },
+    { id: "cas-004", icon: "🏥", label: "CAS-004 — Burn-out Camille Laurent" },
   ]},
   { group: "April 2026", items: [
-    { id: "comp-eng", icon: "📋", label: "Engineering comp analysis" },
-    { id: "cas-001", icon: "🗂️", label: "CAS-001 Works Council prep" },
+    { id: "comp-eng", icon: "📋", label: "Comp analysis — Engineering" },
+    { id: "cas-001", icon: "🗂️", label: "CAS-001 — Conflict Wouter / Stijn" },
   ]},
 ];
 
 const SUGGESTIONS = [
-  { icon: "📊", title: "Generate monthly People Report" },
-  { icon: "📄", title: "Draft an offer letter" },
-  { icon: "⚠️", title: "CAS-008 GDPR — what to do?" },
-  { icon: "⚖️", title: "Legal policy lookup" },
-  { icon: "🚀", title: "Create onboarding plan" },
-  { icon: "📋", title: "Run a performance review" },
+  { icon: "📊", title: "Generate the April 2026 People Report" },
+  { icon: "📄", title: "Draft a permanent contract offer letter" },
+  { icon: "🔴", title: "CAS-003 — How to handle a harassment complaint?" },
+  { icon: "⚖️", title: "Belgian employment law overview — CP 200" },
+  { icon: "🗂️", title: "/diagram org-chart — Visualize the NexaFlow org structure" },
+  { icon: "📋", title: "Performance review framework" },
 ];
 
-const SHORTCUTS = ["/comp-analysis", "/draft-offer", "/onboarding", "/people-report", "/performance-review", "/policy-lookup", "/cas-001", "/cas-002"];
+const SHORTCUTS = ["/comp-analysis", "/draft-offer", "/onboarding", "/people-report", "/performance-review", "/policy-lookup BE", "/diagram org-chart", "/cas-001", "/cas-003", "/cas-005"];
 
 const MODELS = [
   { id: "fast", icon: "✦", label: LLM_PRESETS.fast.label, badge: "default" },
@@ -247,11 +248,32 @@ export default function NexaAIWindow() {
       }
 
       const engine = usedEngine;
+      // Extract Excalidraw diagram JSON if this is a diagram command
+      const diagramJson = routed?.diagramMode ? extractDiagramJson(reply) ?? undefined : undefined;
+
+      // Build display text: strip the raw JSON block from diagram replies to avoid double-render
+      const displayText = (() => {
+        if (!routed?.diagramMode) return reply;
+        if (diagramJson) {
+          // Remove the code fence (closed or open) from the visible text
+          return reply
+            .replace(/```excalidraw[\s\S]*/g, '')   // open or closed fence
+            .replace(/```json[\s\S]*?```/g, '')       // closed json fence
+            .trim() || null; // null → render nothing (diagram-only response)
+        }
+        // Extraction failed: warn the user instead of dumping raw JSON
+        if (engine === 'ollama') {
+          return '⚠️ Ollama cannot reliably generate Excalidraw JSON. Make sure your VITE_GEMINI_API_KEY is set — diagram commands always need Gemini.';
+        }
+        return '⚠️ Could not parse the diagram — Gemini may have truncated the output. Try again.';
+      })();
+
       setMessages((m) => [...m, {
         role: 'assistant',
         engine,
         title: routed?.title,
         raw: reply,
+        diagramJson,
         content: (
           <div className="space-y-3">
             {routed && (
@@ -261,7 +283,7 @@ export default function NexaAIWindow() {
                 <EngineBadge engine={engine} />
               </div>
             )}
-            <p className="text-[14px] whitespace-pre-wrap">{reply}</p>
+            {displayText && <p className="text-[14px] whitespace-pre-wrap">{displayText}</p>}
             {routed && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {routed.chips.map((chip) => (
@@ -275,6 +297,11 @@ export default function NexaAIWindow() {
                   </button>
                 ))}
               </div>
+            )}
+            {routed?.footer && (
+              <p className="text-[11px] font-mono text-claude-muted mt-3 pt-2 border-t border-claude-border tracking-wide">
+                📌 {routed.footer}
+              </p>
             )}
             <p className="text-[11px] text-claude-muted flex items-center gap-1.5 mt-2">
               <EngineBadge engine={engine} />
@@ -347,13 +374,13 @@ export default function NexaAIWindow() {
             </div>
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-[12px] cursor-pointer hover:opacity-80 transition">
-                <input 
-                  type="checkbox" 
-                  checked={deepMode} 
+                <input
+                  type="checkbox"
+                  checked={deepMode}
                   onChange={(e) => setDeepMode(e.target.checked)}
                   className="w-3.5 h-3.5 accent-claude-accent"
                 />
-                <span className={cn(deepMode && "font-bold text-claude-accent")}>Mode deep</span>
+                <span className={cn(deepMode && "font-bold text-claude-accent")}>Deep mode</span>
               </label>
               <div className="relative">
                 <button
@@ -402,7 +429,7 @@ export default function NexaAIWindow() {
                 <div className="text-center mb-10">
                   <div className="text-5xl mb-4 text-claude-accent">✦</div>
                   <h1 className="text-3xl font-serif font-medium mb-2">Good morning, CHRO.</h1>
-                  <p className="text-[13px] text-claude-muted">People Assistant · Demo Company · 500 employees · 4 sites · Apr 19 2026</p>
+                  <p className="text-[13px] text-claude-muted">People Assistant · NexaFlow SA · 87 employees · Brussels HQ · Apr 2026</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {SUGGESTIONS.map((s) => (
@@ -430,6 +457,13 @@ export default function NexaAIWindow() {
                     <div className="flex-1 min-w-0">
                       <div className="text-[12px] text-claude-muted mb-1">{m.role === "user" ? "CHRO Persona" : "NexaAI"}</div>
                       <div className="text-[14px]">{m.content}</div>
+                      {m.diagramJson && (
+                        <DiagramBubble
+                          jsonString={m.diagramJson}
+                          label={m.title ? m.title.toLowerCase().replace(/\s+/g, '-') : 'nexaflow-diagram'}
+                          onSave={(json, filename) => (window as any).electron?.saveDiagram(json, filename)}
+                        />
+                      )}
                       {m.role === "assistant" && (
                         <div className="flex gap-1 mt-3 text-claude-muted">
                           <button className="p-1.5 rounded hover:bg-white"><ThumbsUp className="w-3.5 h-3.5" /></button>
@@ -488,7 +522,7 @@ export default function NexaAIWindow() {
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {SHORTCUTS.map((s) => {
-                  const isGemini = s.startsWith('/cas-');
+                  const isGemini = s.startsWith('/cas-') || s.startsWith('/diagram');
                   return (
                     <button
                       key={s}
@@ -507,14 +541,14 @@ export default function NexaAIWindow() {
                 })}
               </div>
               <div className="text-[11px] text-claude-muted text-center mt-3 flex items-center justify-center gap-2">
-                <span>NexaAI · GDPR compliant ·</span>
+                <span>NexaAI · GDPR compliant · Brussels HQ ·</span>
                 <EngineBadge engine="ollama" />
                 <span className="font-mono text-[10px] bg-slate-100 px-1 rounded border overflow-hidden truncate max-w-[100px]" title={activeModel}>
                   {activeModel}
                 </span>
                 <span className="opacity-40">|</span>
                 <EngineBadge engine="gemini" />
-                <span>deep analysis (/cas-*, --deep)</span>
+                <span>deep analysis (/cas-001…005, --deep)</span>
               </div>
             </div>
           </div>

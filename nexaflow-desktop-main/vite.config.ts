@@ -19,4 +19,14 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  optimizeDeps: {
+    include: ["@excalidraw/excalidraw"],
+    // Excalidraw uses dynamic imports that Vite needs to pre-bundle
+    exclude: [],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/@excalidraw/, /node_modules/],
+    },
+  },
 }));
