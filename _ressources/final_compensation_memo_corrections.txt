@@ -1,0 +1,13 @@
+CORRECTED MEMO CHECKLIST
+
+1. Replace N=50 with N=185 for Engineering.
+2. Replace Médiane €70,000 with Médiane €79,500.
+3. Remove Date: October 26, 2023 and keep April 2026.
+4. Keep CP200.
+5. Keep Engineering.
+6. Keep the regional sites explicitly: Brussels, Amsterdam, Berlin, Lisbon.
+7. Keep CAS-005, but describe it as 3 Senior Engineers underpaid by 15-20%.
+8. Add the explicit source line: NexaFlow_SIRH_500.xlsx, extracted on 19/04/2026.
+
+CORRECT FINAL TAG:
+CP200 | Engineering | N=185 | Médiane €79,500

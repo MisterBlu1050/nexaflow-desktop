@@ -1,0 +1,41 @@
+INTERNAL MEMORANDUM
+
+TO: Bruno Mineo, CHRO
+FROM: NexaAI, CHRO Assistant
+DATE: April 2026
+SUBJECT: Compensation & Retention Analysis: Focus on Engineering Department Risks
+
+***
+
+### I. Executive Summary & Urgency Assessment
+
+The analysis of compensation structures within the Engineering department reveals critical areas of risk. With a 22% engineering turnover rate and multiple active legal cases (including CAS-005 and CAS-006), our current compensation architecture requires structural intervention to stabilize talent across our EU sites.
+
+### II. Core Analysis Findings
+
+**1. Engineering Compensation Audit (N=185):**
+*   **Median Salary:** €79,500 (Canonical benchmark).
+*   **Geographic Parity:** Ensuring alignment across Brussels, Amsterdam, Berlin, Lisbon.
+*   **Turnover:** The 22% churn rate in technical roles is a primary risk factor for FY2026 deliverables.
+
+**2. Legal & Compliance Focus:**
+*   **Framework:** All analysis adheres to CP200 standards.
+*   **Active Cases:** 
+    *   CAS-005: Addressing 3 Senior Engineers underpaid by 15-20%.
+    *   CAS-006: Berlin promotion bias / discrimination claim.
+
+**3. Structural Gaps:**
+*   **Comp & Ben Role:** Currently VACANT. This remains a priority hire to manage localized pay compliance.
+
+### III. Recommendations
+
+1. **Grade Audit:** Align all Engineering roles with the €79,500 median benchmark.
+2. **Site-Specific Adjustments:** Review pay bands for Brussels, Amsterdam, Berlin, Lisbon to ensure market parity.
+3. **Retention Packages:** Proactive intervention for 70 High and 153 Medium flight-risk engineers.
+
+***
+
+CP200 | Engineering | N=185 | Médiane €79,500
+
+Source: NexaFlow_SIRH_500.xlsx, extracted on 19/04/2026
+Footnote: Total company headcount is 500.

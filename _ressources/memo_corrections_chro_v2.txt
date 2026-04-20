@@ -1,0 +1,11 @@
+CP200 | Engineering | N=185 | Médiane €79,500 | Pay gap HF -0.013682496 | P90/P10 1.9722222222 | Flight risk high 70 | Flight risk medium 153
+
+Corrections to apply in the CHRO memo:
+
+1. Replace any reference to N=50 with N=185 for Engineering.
+2. Replace any generic location-parity language with explicit site references: Brussels HQ, Amsterdam, Berlin, Lisbon.
+3. Ensure CAS-005 is described as 3 Senior Engineers underpaid by 15-20%.
+4. Ensure CAS-006 is described as Berlin promotion bias / discrimination claim.
+5. Add a source line: NexaFlow_SIRH_500.xlsx, extracted on 19/04/2026.
+6. Add a footnote that total company headcount is 500.
+7. Keep GDPR / CP200 language, but remove any unsupported claim not present in the dataset.

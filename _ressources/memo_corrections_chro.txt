@@ -1,0 +1,40 @@
+Patch recommandé pour corriger la cohérence des cas actifs dans le memo CHRO:
+
+1. CAS-001
+   - Conflit collectif Amsterdam.
+   - Engineering.
+   - 12 ingénieurs impliqués.
+   - Syndicat/OR néerlandais saisi.
+
+2. CAS-004
+   - Faux indépendants BE/DE.
+   - Engineering + IT Internal.
+   - 8 freelances concernés.
+   - Risque ONSS / Rentenversicherung.
+
+3. CAS-005
+   - Ruptures conventionnelles en Engineering.
+   - 3 Senior Engineers.
+   - Motif: salaires 15-20% sous le marché.
+   - Site: Brussels HQ.
+
+4. CAS-006
+   - Discrimination présumée.
+   - Product Design.
+   - Berlin.
+   - Plainte pour promotions biaisées.
+   - Betriebsrat impliqué.
+
+5. Chiffres source à afficher dans le memo
+   - Engineering turnover: 22%.
+   - Effectif total: 500.
+   - Engineering headcount: 185.
+   - Pay gap overall: -0.013682496.
+   - P90/P10 ratio: 1.9722222222.
+   - Flight risk high: 70.
+   - Flight risk medium: 153.
+
+6. Formulation conseillée
+   - Remplacer toute mention générique par la référence exacte du cas.
+   - Ajouter systématiquement le périmètre: département, site, nombre de personnes, statut du dossier.
+   - Ajouter une ligne "Source: NexaFlow_SIRH_500.xlsx, extrait le 19/04/2026".

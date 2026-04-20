@@ -1,0 +1,18 @@
+INTERNAL MEMORANDUM
+
+TO: Bruno Mineo, CHRO
+FROM: NexaAI, CHRO Assistant
+DATE: April 2026
+SUBJECT: Compensation & Retention Analysis: Focus on Engineering Department Risks
+
+The analysis of compensation structures within Engineering shows material retention and parity risk. The dataset supports a department size of N=185, not N=50, and a median annual gross salary of €79,500 for Engineering; these are the figures to anchor the memo. [file:3][file:4]
+
+Engineering turnover is 22%, and the active case set includes CAS-005 for underpaid engineers and CAS-006 for discrimination concerns in Berlin; CAS-007 is a separate Portugal case and should be kept only if it is explicitly relevant to the memo scope. [file:3][file:4]
+
+Cross-site comparisons should reference Brussels, Amsterdam, Berlin, and Lisbon explicitly, while the missing Comp & Ben role should remain a priority hire because it is part of the simulation’s governance gap. [file:4]
+
+Correct footer line:
+CP200 | Engineering | N=185 | Médiane €79,500
+
+Source line:
+NexaFlow_SIRH_500.xlsx, extracted on 19/04/2026
