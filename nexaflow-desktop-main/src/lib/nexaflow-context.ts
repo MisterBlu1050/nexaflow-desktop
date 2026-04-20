@@ -97,6 +97,98 @@ Applicable law: CP 200 (CPNAE/ANPCB) | Employment Contracts Act 03/07/1978 | Wel
 Social secretariat: Securex | Series B €18M | ARR €4.2M | Burn ~€600K/mo | Runway ~30 months
 `.trim();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Data Gap Matrix — canonical taxonomy of missing HR data
+//
+// Inspired by missing-data classification methodology (Hair et al., 2019):
+// distinguish between gaps caused by SIRH design (fixable), computed proxies
+// (partially reliable), or absent tracking (requires new process).
+//
+// Severity levels:
+//   HIGH   → regulatory or strategic risk; COMEX escalation required
+//   MEDIUM → operational risk; head-of-function decision
+//   LOW    → quality improvement; HR team action
+//
+// Gap types:
+//   SIRH_DESIGN_GAP      → field never collected; requires process change
+//   COMPUTED_FROM_SAMPLE → data exists partially; proxy available
+//   NO_TRACKING_SYSTEM   → no system at all; requires tool acquisition
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type DataGapSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
+export type DataGapType = 'SIRH_DESIGN_GAP' | 'COMPUTED_FROM_SAMPLE' | 'NO_TRACKING_SYSTEM';
+
+export type DataGapEntry = {
+  metric: string;
+  gapType: DataGapType;
+  cause: string;
+  proxyEstimate: string;
+  severity: DataGapSeverity;
+  remediationAction: string;
+  owner: string;
+  dueDate: string;
+  kpiTarget: string;
+  riskIfNoAction: string;
+};
+
+/**
+ * Build the canonical Data Gap Matrix for /people-report.
+ * Accepts runtime-computed tenure values (from startDate sample).
+ *
+ * @param avgTenureYears   - computed mean, or null if sample too small
+ * @param medianTenureYears - computed median, or null if sample too small
+ * @param sampleN          - number of employees with a valid startDate
+ */
+export function buildDataGapMatrix(params: {
+  avgTenureYears: string | null;
+  medianTenureYears: string | null;
+  sampleN: number;
+}): DataGapEntry[] {
+  const { avgTenureYears, medianTenureYears, sampleN } = params;
+  const tenureProxy = avgTenureYears && medianTenureYears
+    ? `Mean: ${avgTenureYears} yrs · Median: ${medianTenureYears} yrs (N=${sampleN} employees, ref: April 2026)`
+    : `Insufficient sample data (N=${sampleN}) — complete SIRH startDate coverage required before using this proxy`;
+
+  return [
+    {
+      metric: 'Gender ratio',
+      gapType: 'SIRH_DESIGN_GAP',
+      cause: 'Gender field absent from Securex SIRH import — never collected at onboarding',
+      proxyEstimate: 'Not estimable without self-declaration — name inference is unreliable and non-compliant (GDPR)',
+      severity: 'HIGH',
+      remediationAction: 'Add voluntary gender self-declaration to SIRH onboarding form (Securex) + anonymous survey for current staff',
+      owner: 'Anke Willems, HR Coordinator',
+      dueDate: '2026-05-31',
+      kpiTarget: '≥90% gender data completion in SIRH by June 2026',
+      riskIfNoAction: 'Non-compliance with Gender Pay Gap Act (22/04/2012) — mandatory biennial reporting for companies ≥50 employees; IEFH audit risk',
+    },
+    {
+      metric: 'Average tenure',
+      gapType: 'COMPUTED_FROM_SAMPLE',
+      cause: `startDate available in ${sampleN}-profile SIRH sample — full 87-employee coverage pending Securex data completion`,
+      proxyEstimate: tenureProxy,
+      severity: 'LOW',
+      remediationAction: 'Complete SIRH with all 87 employee start dates from Securex contract archive',
+      owner: 'Yasmina El Idrissi, Talent Acquisition',
+      dueDate: '2026-05-15',
+      kpiTarget: '100% startDate coverage → accurate attrition cohort analysis enabled by M2',
+      riskIfNoAction: 'Tenure-based retention segmentation impossible → flight risk clusters underestimated in Series B growth plan',
+    },
+    {
+      metric: 'Open positions',
+      gapType: 'NO_TRACKING_SYSTEM',
+      cause: 'No ATS integrated with SIRH — vacancies tracked informally in spreadsheets (Yasmina El Idrissi)',
+      proxyEstimate: 'Est. 8 open roles (M3 recruitment plan: 8 hires targeted by Q3 2026 per Company Bible)',
+      severity: 'HIGH',
+      remediationAction: 'Activate Workable ATS integration → SIRH; define weekly vacancy snapshot process; present at next COMEX',
+      owner: 'Yasmina El Idrissi + Amit Patel (Engineering headcount)',
+      dueDate: '2026-06-30',
+      kpiTarget: 'ATS live + 100% vacancy tracking → time-to-fill KPI active by M3 (June 2026)',
+      riskIfNoAction: 'Time-to-fill untracked → Series B 140-employee target by Dec 2026 is at risk; Engineering capacity gap widens',
+    },
+  ];
+}
+
 /**
  * Full NexaFlow system context — prepended to every LLM call by NexaAIWindow.
  * Handlers in use-command-router.ts set TASK-SPECIFIC prompts only; they must NOT

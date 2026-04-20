@@ -17,6 +17,7 @@ import {
   Text,
   View,
   StyleSheet,
+  Font,
   Svg,
   Rect,
   Circle,
@@ -26,6 +27,12 @@ import {
   Text as SvgText,
 } from '@react-pdf/renderer';
 import type { ChartSpec } from '@/hooks/use-command-router';
+
+// ── Disable automatic hyphenation globally (react-pdf v4 Font API) ────────────
+// Prevents layout engine from splitting words: "engi-neering", "harass-ment" etc.
+// Font.registerHyphenationCallback is the reliable API in v4 (the hyphenationCallback
+// prop on <Document> is a v3 compatibility shim that may not fire in all contexts).
+Font.registerHyphenationCallback((word) => [word]);
 
 // ── Charte chromatique ────────────────────────────────────────────────────────
 const C = {
@@ -998,6 +1005,10 @@ function sanitizeContent(raw: string): string {
     // Moins/plus seul avant une majuscule (+HR Key…)
     .replace(/^[-+]\s*(?=[A-Z][a-z])/gm, '')
 
+    // ── Corrections de terminologie LLM ──────────────────────────────────
+    // "SIRI" est une hallucination LLM — le système s'appelle SIRH
+    .replace(/\bSIRI\b/g, 'SIRH')
+
     // ── Nettoyage final ───────────────────────────────────────────────────
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -1025,6 +1036,7 @@ function NexaFlowDocument({ title, subtitle = '', author = 'Bruno Mineo, DRH', c
       author={author}
       creator="NexaFlow DRH · NexaAI"
       subject={subtitle}
+      hyphenationCallback={(word) => [word]}
     >
       {/* Page de couverture */}
       <CoverPage title={title} subtitle={subtitle} author={author} />

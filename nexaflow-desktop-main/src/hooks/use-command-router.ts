@@ -16,6 +16,7 @@ import {
   MARKET_MEDIANS,
   NEXAFLOW_GROUND_TRUTH,
   normalizeDisplayLabel,
+  buildDataGapMatrix,
 } from '@/lib/nexaflow-context';
 export { shouldUseGemini } from '@/lib/gemini-client';
 
@@ -73,6 +74,12 @@ export type HandlerResult = {
    * never from the LLM — so they are always correct regardless of model quality.
    */
   chartData?: ChartSpec[];
+  /**
+   * Deterministic markdown appended AFTER the LLM narrative in NexaAIWindow.
+   * Used for sections whose content must be 100% reliable (action plan, scenarios).
+   * The LLM is instructed NOT to generate these sections — they come from here.
+   */
+  lockedSections?: string;
 };
 
 /**
@@ -299,7 +306,54 @@ Always respond in English.`,
       console.error('IPC getPeopleStats failed:', err);
     }
 
-    // Build context — use ground-truth headcounts when IPC is unavailable
+    // ── Tenure computation — from startDate in employee sample ────────────────
+    // Guard clauses: filter invalid dates, require minimum sample for reliability.
+    // If sample is too small (< MIN_RELIABLE_SAMPLE), tenure is reported as
+    // "insufficient data" in the prompt rather than injecting null/NaN.
+    const MIN_RELIABLE_SAMPLE = 3;
+    const REF_DATE = new Date('2026-04-20');
+
+    const tenureYearsArr = employees
+      .filter(e => e.status !== 'notice-period' && e.startDate)
+      .map(e => {
+        const ms = REF_DATE.getTime() - new Date(e.startDate as string).getTime();
+        return ms / (1000 * 60 * 60 * 24 * 365.25);
+      })
+      .filter(v => Number.isFinite(v) && v >= 0); // guard against future dates or NaN
+
+    const tenureReliable = tenureYearsArr.length >= MIN_RELIABLE_SAMPLE;
+
+    const avgTenureYears = tenureReliable
+      ? (tenureYearsArr.reduce((a, b) => a + b, 0) / tenureYearsArr.length).toFixed(1)
+      : null;
+
+    const medianTenureYears = (() => {
+      if (!tenureReliable) return null;
+      const sorted = [...tenureYearsArr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1)
+        : sorted[mid].toFixed(1);
+    })();
+
+    // Safe display string for the system prompt — never injects "null years"
+    const tenurePromptLine = tenureReliable && avgTenureYears && medianTenureYears
+      ? `Mean: ${avgTenureYears} yrs · Median: ${medianTenureYears} yrs (N=${tenureYearsArr.length}, SIRH sample — USE THESE FIGURES)`
+      : `Insufficient data (N=${tenureYearsArr.length} < ${MIN_RELIABLE_SAMPLE} minimum) — apply DATA GAP PROTOCOL: mark as gap, do NOT invent a figure`;
+
+    // Guard: count only active employees with a valid flightRisk value
+    const flightRiskHigh = employees.filter(
+      e => e.status === 'active' && (e.flightRisk ?? '').toLowerCase() === 'high'
+    ).length;
+
+    // ── Data Gap Matrix — from canonical factory (nexaflow-context.ts) ────────
+    const dataGapMatrix = buildDataGapMatrix({
+      avgTenureYears,
+      medianTenureYears,
+      sampleN: tenureYearsArr.length,
+    });
+
+    // ── Build context payload ─────────────────────────────────────────────────
     // NEVER use groupBy(employees, 'department') — sample counts are unreliable
     const contextPayload = peopleStats
       ? {
@@ -307,16 +361,57 @@ Always respond in English.`,
           totalEmployees: peopleStats.total,
           byDept: peopleStats.byDept,
           topFlightRisk: peopleStats.topFlightRisk,
+          tenureProxy: { avgYears: avgTenureYears, medianYears: medianTenureYears, sampleN: tenureYearsArr.length },
+          flightRiskHighCount: flightRiskHigh,
+          dataGapMatrix,
           activeCases: ['CAS-001','CAS-002','CAS-003','CAS-004','CAS-005'],
         }
       : {
           source: statsSource,
           totalEmployees: 87,
           site: 'Brussels HQ (single site)',
-          byDept: REAL_HEADCOUNTS,   // ← ground-truth headcounts, NOT sample groupBy
+          byDept: REAL_HEADCOUNTS,
           engineeringTurnover: '18%',
+          tenureProxy: { avgYears: avgTenureYears, medianYears: medianTenureYears, sampleN: tenureYearsArr.length },
+          flightRiskHighCount: flightRiskHigh,
+          dataGapMatrix,
           activeCases: ['CAS-001','CAS-002','CAS-003','CAS-004','CAS-005'],
         };
+
+    // ── Locked sections 5 & 6 — pre-computed, never from LLM ────────────────
+    // The LLM is instructed to stop after section 4. These two sections are
+    // appended by NexaAIWindow after the LLM response, guaranteeing:
+    //  • Each CAS is referenced by number with a named owner and a fixed date
+    //  • Scenario figures (headcount, €, legal) are deterministic ground truth
+    const actionPlanMarkdown = `
+## 5. Consolidated Action Plan
+
+> **P&L & Roadmap exposure:** CAS-002 (Engineering departure) + 8 untracked open Engineering roles = estimated −10 to −15% product velocity in Q3 2026. At NexaFlow's current ARR trajectory, one delayed sprint cycle represents €40K–€80K in deferred revenue recognition. CAS-005 ONSS liability (est. €120K–€180K) would consume 60–90% of the Series B working-capital buffer earmarked for Q2. Without Workable ATS live by June 2026, the board-committed 140 FTE target by December 2026 is structurally at risk.
+
+| Case / Issue | Immediate Action | Owner | Due Date | KPI Target | Risk if Delayed |
+|---|---|---|---|---|---|
+| **CAS-001** · Engineering conflict | Formal mediation session — Wouter Janssens / Stijn Leclercq | Anke Willems + external mediator | 2026-04-30 | Signed mediation agreement | Escalation to formal Art. 32 complaint (Wellbeing Act) |
+| **CAS-002** · Conventional termination | Draft termination agreement + knowledge transfer plan (Jonas Goossens) | Bruno Mineo + CLO Isabelle Thiry | 2026-05-15 | CDI termination signed or counter-offer accepted | Voluntary departure without handover — engineering capacity gap widens |
+| **CAS-003** · Sales harassment (CRITICAL) | Appoint independent investigator within 24h — strict confidentiality protocol | CLO Isabelle Thiry + CPPT advisor | **2026-04-24** | External investigator mandated | Criminal exposure Art. 32ter + labour court claim — no statute immunity |
+| **CAS-004** · Burn-out (Camille Laurent) | Reintegration assessment + mutuelle contact + occupational physician coordination | Anke Willems + occupational physician | 2026-05-05 | Formal reintegration plan submitted | Extended absence → long-term disability cost; no legal protection without plan |
+| **CAS-005** · Misclassified contractors | Legal audit of 3 contractor contracts + ONSS regularisation plan | CLO Isabelle Thiry + RSZ/ONSS advisor | 2026-05-31 | Audit report + ONSS regularisation plan filed | ONSS fine + est. €120K–€180K back contributions if discovered by audit |
+| **Data gap** · Gender ratio | Add voluntary gender self-declaration to SIRH onboarding (Securex) + anonymous survey for current staff | Anke Willems | 2026-05-31 | ≥90% SIRH gender completion | Gender Pay Gap Act audit risk (IEFH) — mandatory biennial reporting for companies ≥50 employees |
+| **Data gap** · ATS / Open positions | Activate Workable ATS integration to SIRH; define weekly vacancy snapshot; present at next COMEX | Yasmina El Idrissi + Amit Patel | 2026-06-30 | 100% vacancy tracking live; time-to-fill KPI active | Series B 140-HC target by Dec 2026 at risk — 53 hires in 6 months without pipeline tracking is infeasible |
+`.trim();
+
+    const scenarioMarkdown = `
+## 6. Scenario: Status Quo in 90 Days
+
+> **Hypothesis:** No CHRO action taken between April 20 and July 20, 2026.
+
+| Scenario | Trigger Event | 90-Day Outcome | Headcount Impact | Financial Risk | Legal Exposure |
+|---|---|---|---|---|---|
+| **Worst case** | CAS-003 complaint goes public; CAS-005 ONSS audit triggered externally | Reputational damage in Brussels market; 2+ voluntary departures cascade from Engineering | −5 HC (CAS-002 + cascade) | €180K ONSS + €50K legal fees + €80K emergency recruitment | Labour court claim + IEFH audit + potential criminal referral Art. 32ter |
+| **Expected case** | CAS-003 contained internally; CAS-005 negotiated before audit | Controlled attrition: Jonas Goossens departs; ATS still not live; gender data still incomplete | −1 to −2 HC | €30K severance + €40K replacement recruitment | No immediate litigation; ONSS risk unresolved; IEFH audit risk persists |
+| **Best case** | All action plan items executed on schedule | Engineering stabilised; SIRH complete; Workable ATS live by June 2026 | Neutral (replacement hired Q3) | €15K mediation + standard severance | Zero litigation risk if CAS-003 investigator mandated by 2026-04-24 |
+
+**Series B milestone at risk (all scenarios):** Without Workable ATS live by June 2026, reaching the 140-employee target by December 2026 requires hiring **53 people in 6 months** — infeasible without structured pipeline tracking. CAS-002 departure in Engineering amplifies the capacity gap.
+`.trim();
 
     // ── Chart data — deterministic, from ground-truth constants ───────────────
     const DEPT_COLORS: Record<string, string> = {
@@ -364,15 +459,74 @@ Always respond in English.`,
     return {
       cardColor: '#8B5CF6',
       title: 'People Report — ' + (focus === 'attrition' ? 'Attrition Focus' : 'April 2026'),
-      systemPrompt: `Generate a People Report for NexaFlow SA (87 employees, Brussels HQ only). ${promptFocus}
+      systemPrompt: `Generate a CHRO-to-COMEX People Report for NexaFlow SA (87 employees, Brussels HQ). ${promptFocus}
 Data source: ${statsSource}.
-Active cases: CAS-001 (Engineering conflict), CAS-002 (conventional termination), CAS-003 (Sales harassment), CAS-004 (Product burn-out), CAS-005 (misclassified contractors).
-Never fabricate missing data — explicitly flag HRIS gaps.
-Always respond in English.`,
+
+TENURE: ${tenurePromptLine}
+
+DATA GAP PROTOCOL — for each gap in dataGapMatrix:
+  1. State the gap and its cause (do not just write "Data Unavailable")
+  2. Use the proxyEstimate where provided
+  3. Add a brief DECISION BLOCK:
+     → Owner: [named person]
+     → Due date: [specific date]
+     → KPI target: [measurable outcome]
+     → Risk if no action: [business consequence with timeline]
+
+═══════════════════════════════════════════
+OUTPUT STRUCTURE — MANDATORY
+You MUST output EXACTLY these four sections, with these EXACT headers, in this exact order.
+No other sections. No section 5. No "Next Steps". No conclusion. No sign-off.
+═══════════════════════════════════════════
+
+## 1. Executive Summary
+
+Write 3 bullets. Each bullet MUST follow this format:
+[Finding] → COMEX decision: [specific action required] → P&L / roadmap consequence: [business impact].
+
+Example of correct bullet:
+"CAS-003 harassment complaint unresolved → COMEX must mandate independent investigator by 2026-04-24 → failure to act triggers criminal exposure (Art. 32ter) AND reputational damage that will raise Series B due diligence risk with investors."
+
+The third bullet MUST reference headcount risk and its link to product velocity or revenue:
+"Engineering departure risk (CAS-002 + 18% turnover) combined with 8 untracked open roles → product roadmap delivery estimated at −10 to −15% velocity in Q3 2026 → at NexaFlow's ARR trajectory, each delayed sprint cycle = €40K–€80K deferred revenue recognition."
+
+## 2. Workforce Snapshot
+
+Headcount table (Department | Headcount | % of total), then:
+- Tenure: ${tenurePromptLine}
+- High flight-risk employees: ${flightRiskHigh} active
+- Engineering turnover: 18% (Company Bible Day 1)
+
+## 3. Data Gaps — Classified and Remediated
+
+One sub-section per gap from dataGapMatrix. Apply DATA GAP PROTOCOL above.
+Do NOT write a "Next Steps" list here — use the DECISION BLOCK format only.
+
+## 4. Active HR Cases — Priority Matrix
+
+Table with columns: Case | Description | Severity (/5) | Legal Exposure | Immediate Action Required
+One row per CAS-001 to CAS-005. Use exact case descriptions from the active cases list below.
+
+═══════════════════════════════════════════
+MANDATORY STOP — after completing ## 4., stop immediately.
+DO NOT add: "Next Steps", "Conclusion", "Recommendations", section 5, section 6,
+a signature, a closing sentence, or any additional content.
+Sections 5 and 6 (Action Plan + Scenario) are pre-computed and appended by the system.
+═══════════════════════════════════════════
+
+Active cases: CAS-001 (Engineering conflict Wouter Janssens / Stijn Leclercq, Medium),
+CAS-002 (conventional termination Jonas Goossens, Medium),
+CAS-003 (Sales harassment complaint anonymous, CRITICAL — 5/5),
+CAS-004 (burn-out Camille Laurent Product Design, Low-Med),
+CAS-005 (3 misclassified contractors Engineering, High — ONSS liability).
+
+TERMINOLOGY: Always write "SIRH" — never "SIRI". Never invent cases beyond CAS-001 to CAS-005.
+Always respond in English. Format: structured markdown with tables where specified.`,
       contextData: JSON.stringify(contextPayload, null, 2),
       chips: ['Top flight risks', 'Turnover cost analysis', 'Sector benchmark', 'Export PowerBI'],
       engine: isDeep ? 'gemini' : 'ollama',
       chartData: peopleCharts,
+      lockedSections: actionPlanMarkdown + '\n\n' + scenarioMarkdown,
     };
   }
 
