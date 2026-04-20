@@ -119,14 +119,16 @@ These are explicitly prohibited in the system prompt and structurally prevented 
 
 ## 7. Other Routes — Contract Summary
 
-| Route | LLM sections | Deterministic sections | Notes |
-|-------|-------------|----------------------|-------|
-| `/comp-analysis` | Executive Summary, HRIS Metrics, Risks, Recommendations | Chart data (bar: salary vs market, flight risk) | Stop after Recommendations — no footer |
-| `/cas-001` to `/cas-005` | 5 sections (Summary, Legal, Risk Matrix, Action Plan, Approvals) | None | Always Gemini |
-| `/draft-offer` | Full letter | None | CP 200 + Eenheidsstatuut |
-| `/onboarding` | 30/60/90-day plan | None | — |
-| `/policy-lookup` | Policy brief | None | Redirects non-BE jurisdictions to BE |
-| `/diagram` | Excalidraw JSON only | None | Always Gemini; diagram-only response |
+| Route | LLM sections | Deterministic sections | Engine | Notes |
+|-------|-------------|----------------------|--------|-------|
+| `/comp-analysis [dept]` | 1. Executive Summary · 2. Compensation Metrics · 3. Risk Assessment · 4. Recommendations | 5. Equity Action Plan (dept-aware: CAS-002 row if Engineering) · 6. Retention Scenario (worst/expected/best with € figures) | Ollama / Gemini --deep | gapPct, replaceCostK computed from ground truth |
+| `/social-elections` | 1. Executive Summary (3 COMEX bullets) · 2. Legal Status Assessment (CPPT vs CE table, 2 rows) · 3. Current CPPT Obligations (table, 5 rows) · 4. CAS-003 × CPPT Intersection (max 5 sentences) | 5. Compliance Calendar · 6. Series B HR Legal Roadmap | **Always Gemini** | Thresholds: 50 CPPT, 100 CE, 150 conditional (CCT-dependent); CPPT ≠ CE enforced in prompt; next elections May 2028 |
+| `/cas-001` to `/cas-005` | 1. Executive Summary · 2. Legal Framework · 3. Risk Matrix · 4. Action Plan · 5. Approvals | None | **Always Gemini** | — |
+| `/draft-offer [name]` | Full CDI offer letter | None | Ollama / Gemini --deep | CP200 + Eenheidsstatuut clauses |
+| `/onboarding [name]` | 30/60/90-day plan | None | Ollama / Gemini --deep | — |
+| `/performance-review [name]` | 4-level grid (I–IV), development plan | None | Ollama / Gemini --deep | Vlaamse Overheid competency framework |
+| `/policy-lookup [country]` | Policy brief | None | Ollama / Gemini --deep | Non-BE jurisdictions redirected to BE |
+| `/diagram [topic]` | Excalidraw JSON only | None | **Always Gemini** | diagram-only response; diagramMode=true |
 
 ---
 

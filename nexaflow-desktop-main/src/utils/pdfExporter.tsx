@@ -982,6 +982,36 @@ function ContentPage({
 // ─────────────────────────────────────────────────────────────────────────────
 function sanitizeContent(raw: string): string {
   return raw
+    // ── Caractères de contrôle (U+0000–U+0009, U+000B, U+000C, U+000E–U+001F) ─
+    // Artefacts react-pdf quand un glyphe est absent du font (ex. → dans Helvetica)
+    // Préserve \n (U+000A) et \r (U+000D) pour ne pas casser les sauts de ligne
+    .replace(/[\u0000-\u0009\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '')
+
+    // ── Unicode hors Latin-1 → ASCII lisible ──────────────────────────────────
+    // Helvetica PDF (WinAnsiEncoding) ne couvre que U+0000–U+00FF.
+    // Tout glyphe hors de cette plage est rendu comme artefact (ex. ≥ → "=4", − → "\u0012").
+    // On remplace systématiquement avant rendu PDF.
+    .replace(/→/g, '->')          // U+2192  flèche droite
+    .replace(/←/g, '<-')          // U+2190  flèche gauche
+    .replace(/↔/g, '<->')         // U+2194  flèche double
+    .replace(/−/g, '-')            // U+2212  signe moins (≠ trait d'union)
+    .replace(/–/g, '-')            // U+2013  tiret demi-cadratin
+    .replace(/≥/g, '>=')          // U+2265  supérieur ou égal
+    .replace(/≤/g, '<=')          // U+2264  inférieur ou égal
+    .replace(/≠/g, '!=')          // U+2260  différent
+    .replace(/×/g, 'x')           // U+00D7  signe multiplication
+    .replace(/✓/g, '[OK]')        // U+2713  coche
+    .replace(/•/g, '-')            // U+2022  puce (déjà dans Latin-1 mais parfois absent)
+    // Émojis — remplacés par balises textuelles avant de tomber dans le strip général
+    .replace(/🔴/g, '[URGENT]')
+    .replace(/⚠️/g, '[ATTENTION]')
+    .replace(/ℹ️/g, '[INFO]')
+    .replace(/✅/g, '[OK]')
+    .replace(/❌/g, '[KO]')
+    // Strip tout caractère restant hors Latin-1 (U+0100 et au-dessus)
+    // Dernier recours : évite tout glyphe inconnu qui produirait un artefact
+    .replace(/[\u0100-\uFFFF]/g, '')
+
     // ── Code fences ────────────────────────────────────────────────────────
     .replace(/```excalidraw[\s\S]*/g, '')
     .replace(/```json[\s\S]*?```/gs, '')
@@ -1008,6 +1038,9 @@ function sanitizeContent(raw: string): string {
     // ── Corrections de terminologie LLM ──────────────────────────────────
     // "SIRI" est une hallucination LLM — le système s'appelle SIRH
     .replace(/\bSIRI\b/g, 'SIRH')
+    // "€" avant un non-numérique = artefact LLM (ex. "e90%", "e CP200", "eCP200")
+    // Le signe € ne doit précéder que des chiffres
+    .replace(/€(?![0-9])/g, '')
 
     // ── Nettoyage final ───────────────────────────────────────────────────
     .replace(/\n{3,}/g, '\n\n')

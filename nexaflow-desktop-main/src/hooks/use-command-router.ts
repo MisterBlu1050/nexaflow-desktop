@@ -139,39 +139,61 @@ export async function routeCommand(input: string): Promise<HandlerResult | null>
     const medianSalary = salaries.length ? salaries[Math.floor(salaries.length / 2)] : 0;
     // medianDisplay resolved below after CANONICAL_MEDIANS lookup
 
-    // Flight risk & gender from sample data
-    const highRisk    = employeesList.filter((e: any) => getRisk(e) === 'high').length;
-    const medRisk     = employeesList.filter((e: any) => getRisk(e) === 'medium').length;
+    // Flight risk from sample data
+    const highRisk = employeesList.filter((e: any) => getRisk(e) === 'high').length;
+    const medRisk  = employeesList.filter((e: any) => getRisk(e) === 'medium').length;
+
+    // Gender status — SIRH gender field is absent from Securex import.
+    // femaleCount comes from demo sample data only (not official SIRH).
+    // Never flag as confirmed imbalance — always report as data gap requiring remediation.
     const femaleCount = employeesList.filter((e: any) => getGender(e) === 'F').length;
-    const genderGapFlag = n > 0 && (femaleCount / n) < 0.4
-      ? 'Déséquilibre H/F détecté'
-      : 'Répartition H/F acceptable';
+    const genderStatusNote = femaleCount > 0 && n > 0
+      ? `Potential imbalance flagged in sample (${femaleCount}F / ${n} employees, ${Math.round(femaleCount/n*100)}%) — UNCONFIRMED: SIRH gender field absent from Securex import. Formal audit requires gender data completion first.`
+      : 'Gender data unavailable — SIRH gender field absent from Securex import. Formal gender pay audit not yet possible.';
 
     const turnoverNote = deptFilter === 'engineering'
       ? '18% (source: Company Bible Day 1)'
-      : 'données non disponibles — à collecter';
+      : 'not tracked — ATS/SIRH integration required';
 
     // Use centralised ground-truth headcount (overrides sample-derived n)
     const realN = REAL_HEADCOUNTS[deptFilter] ?? n;
 
     // Canonical median from Company Bible — takes priority over sample-computed value.
-    // Only Engineering has a canonical value (€79,500) at Day 1.
-    // Other departments fall back to computed median (displayed as "demo data").
     const canonicalMedian = CANONICAL_MEDIANS[deptFilter];
     const medianFinal   = canonicalMedian ?? medianSalary;
     const medianDisplay = medianFinal > 0 ? medianFinal.toLocaleString('fr-BE') : 'N/A';
     const medianSource  = canonicalMedian ? 'Company Bible' : (usedIPC ? 'SQLite live' : 'demo data');
+
+    // Market benchmark — computed before sirhBlock so it can be injected as a data anchor
+    // (prevents the LLM from writing "Data Gap Needs Assessment" while the chart has the figure)
+    const marketMedianEarly = MARKET_MEDIANS[deptFilter] ?? 0;
+    const gapPctEarly = marketMedianEarly > 0
+      ? ((medianFinal - marketMedianEarly) / marketMedianEarly * 100).toFixed(1)
+      : null;
+    const benchmarkLine = gapPctEarly
+      ? `Market benchmark (CP200 sector, Hay Group / Robert Half April 2026): €${marketMedianEarly.toLocaleString('fr-BE')} — Gap: ${Number(gapPctEarly) >= 0 ? '+' : ''}${gapPctEarly}% vs market`
+      : 'Market benchmark: not available for this department — use industry proxy if needed';
 
     const sirhBlock = `
 === REAL HRIS DATA — Department: ${dept} ===
 Source: NexaFlow_SIRH_500.xlsx | Extracted: ${new Date().toLocaleDateString('en-BE')}
 Company: NexaFlow SA | HQ: Brussels (Avenue Louise 54) | Total headcount: 87
 Department headcount (ground truth): ${realN}
-Gross annual median salary: €${medianDisplay}
+Gross annual median salary: €${medianDisplay} (source: ${medianSource})
+${benchmarkLine}
 Flight risk: ${highRisk} High, ${medRisk} Medium
-Gender balance: ${genderGapFlag}
 Turnover: ${turnoverNote}
-Collective agreement: CP 200 (CPNAE/ANPCB)
+
+CP200 (CPNAE/ANPCB) — salary minimums only:
+  Obligation: all salaries must be >= CP200 barema (index revised April 2026)
+  Status: to verify with Securex — annual barema review due June 2026
+  NOTE: CP200 governs salary floors, NOT gender quotas or diversity reporting.
+
+Gender Pay Gap Act (22/04/2012) — reporting obligation:
+  Status: ${genderStatusNote}
+  Obligation: biennial gender pay report mandatory for companies >= 50 employees (IEFH)
+  Blocker: SIRH gender field must be completed before any formal audit
+
 Active HR cases relevant to this department:
   - CAS-001: Interpersonal conflict in Engineering (Wouter Janssens vs Stijn Leclercq)
   - CAS-002: Conventional termination — Jonas Goossens (Senior Backend, confirmed flight risk)
@@ -179,16 +201,20 @@ Active HR cases relevant to this department:
 
 GUARDRAILS — violation = incorrect output:
 - Use ONLY the data provided above. Never fabricate salary figures.
+- Market benchmark is provided above — use it; do NOT write "Data Gap" for benchmark.
+- CP200 = salary minimums (barema) only. Do NOT link CP200 to gender compliance.
+- Gender pay risk belongs under "Gender Pay Gap Act (22/04/2012)", not CP200.
 - Department headcount is ${realN}. Never use any other N value for this department.
 - NexaFlow operates from Brussels HQ exclusively. No foreign offices exist.
 - Only CAS-001 to CAS-005 exist. Never invent additional cases.
+- Never prefix text or percentages with the euro sign (€). Use € before numbers only.
 `.trim();
 
     // ── Chart data (deterministic — ground truth only, never from LLM) ─────────
-    const marketMedian = MARKET_MEDIANS[deptFilter] ?? 0;
-    const gapPct = marketMedian > 0
-      ? ((medianFinal - marketMedian) / marketMedian * 100).toFixed(1)
-      : null;
+    // Use values already computed above (marketMedianEarly / gapPctEarly) so the
+    // benchmark figure stays consistent between sirhBlock and charts.
+    const marketMedian = marketMedianEarly;
+    const gapPct       = gapPctEarly;
     const gapLabel = gapPct
       ? `Gap: ${Number(gapPct) >= 0 ? '+' : ''}${gapPct}% vs market`
       : 'Market benchmark unavailable';
@@ -233,20 +259,97 @@ GUARDRAILS — violation = incorrect output:
       });
     }
 
+    // ── Locked sections 5 & 6 — deterministic, dept-aware ─────────────────────
+    const replaceCostK = Math.round(medianFinal * 1.5 / 1000);
+    const totalRiskK   = Math.round(highRisk * medianFinal * 1.5 / 1000);
+    const deptHead     = deptFilter === 'engineering' ? 'Amit Patel, CTO'
+                       : deptFilter === 'sales'       ? 'Sarah Claessens, VP Sales'
+                       : deptFilter === 'product'     ? 'Elena Voss, Head of Product'
+                       : 'department head';
+
+    const cas002Row = deptFilter === 'engineering'
+      ? `| **CAS-002** · Jonas Goossens (Senior Backend) | Counter-offer or structured exit package — define compensation ceiling before negotiation | Bruno Mineo + CLO Isabelle Thiry | 2026-05-15 | Decision made; exit package or retention bonus signed | Uncontrolled voluntary departure — no handover, Engineering sprint continuity at risk |`
+      : '';
+
+    const compActionPlanMd = `
+## 5. Compensation Equity — Action Plan
+
+> **P&L exposure:** Cost-to-replace one ${dept} employee = est. **€${replaceCostK}K** (1.5× gross median, Robert Half benchmark). ${highRisk} high-risk employee${highRisk !== 1 ? 's' : ''} in ${dept} = **€${totalRiskK}K** potential replacement liability if unaddressed.
+
+| Profile / Issue | Action | Owner | Due Date | KPI Target | Risk if Delayed |
+|---|---|---|---|---|---|
+${cas002Row}
+| **High flight-risk cohort** · ${dept} (N=${highRisk}) | Identify top performers at risk; propose targeted retention bonus envelope | CFO Marc Dujardin + ${deptHead} | 2026-06-30 | Retention packages signed for top-3 at-risk profiles | Cascade attrition at €${replaceCostK}K/departure — sprint delays + knowledge loss |
+| **Gender pay equity audit** | Cannot audit — gender field absent from SIRH. Activate voluntary self-declaration form (Securex) first | Anke Willems | 2026-05-31 | ≥90% SIRH gender completion | Gender Pay Gap Act (22/04/2012) IEFH audit — mandatory biennial reporting ≥50 employees |
+| **CP200 barema compliance** | Verify all ${dept} gross salaries ≥ CP200 minimum barema (index 1.04 — April 2026 revision) | Bruno Mineo + Securex | 2026-06-15 | 100% ${dept} salaries above CP200 barema | ONSS penalty + back pay obligation; Social Inspection audit risk |
+`.trim();
+
+    const compScenarioMd = `
+## 6. Retention Scenario — 90 Days
+
+> **Hypothesis:** No compensation or retention action taken between April 20 and July 20, 2026.
+
+| Scenario | Trigger | Headcount Impact | Salary Cost | Recruitment Cost | Legal Exposure |
+|---|---|---|---|---|---|
+| **Worst case** | ${deptFilter === 'engineering' ? 'CAS-002 voluntary exit; 2 high-risk follow departures' : `${highRisk} high-risk employees depart simultaneously`} | −${deptFilter === 'engineering' ? 3 : highRisk} HC ${dept} | €${Math.round(medianFinal * (deptFilter === 'engineering' ? 3 : highRisk) / 1000)}K salary gap | €${Math.round(replaceCostK * (deptFilter === 'engineering' ? 3 : highRisk))}K replacement | Possible unfair pay claim if gender equity not documented |
+| **Expected case** | ${deptFilter === 'engineering' ? 'CAS-002 negotiated exit; no cascade' : '1 high-risk departure, others retained'} | −1 HC | €${Math.round(medianFinal / 1000)}K salary gap | €${replaceCostK}K (severance + recruitment) | None if CP200 compliance confirmed |
+| **Best case** | Counter-offer accepted; retention bonuses locked in before Q3 | 0 HC loss | +€${Math.round(highRisk * 5)}K bonus cost | €0 | Zero risk if gender data and barema documented |
+
+${gapPct && Number(gapPct) < 0
+  ? `**Compensation gap risk:** ${dept} median is ${Math.abs(Number(gapPct))}% below market (CP200 benchmark). This is the primary structural flight-risk driver — candidates can negotiate upward at interview. Closing the gap to ≤5% below market requires a €${Math.round((marketMedian - medianFinal) * realN / 1000)}K total payroll adjustment for the department.`
+  : `**Compensation position:** ${dept} median is ${gapPct ? `${Number(gapPct) >= 0 ? '+' : ''}${gapPct}% vs market` : 'at or above market benchmark'}. Retention risk is driven by career growth and case dynamics (see People Report) rather than base salary gap.`
+}
+`.trim();
+
     return {
       skill: 'comp-analysis',
       cardColor: 'from-emerald-900/40 to-teal-900/40',
       title: `Compensation Analysis — ${dept}`,
-      systemPrompt: `You are NexaAI, CHRO assistant to Bruno Mineo at NexaFlow SA.
-Produce a structured compensation analysis for the ${dept} department (N=${realN}).
-Format: CHRO memo with four sections — Executive Summary, HRIS Metrics, Identified Risks, Recommendations.
-Stop after the Recommendations section. Do not add a Legal Footer, signature, or closing line — the UI renders the footer independently.
+      systemPrompt: `Generate a CHRO-to-COMEX Compensation Analysis for the ${dept} department at NexaFlow SA (N=${realN}, Brussels HQ).
+Data source: ${medianSource}.
+
+═══════════════════════════════════════════
+OUTPUT STRUCTURE — MANDATORY
+Output EXACTLY these four sections with these EXACT headers, in this order.
+No other sections. No "Next Steps". No conclusion. No sign-off.
+═══════════════════════════════════════════
+
+## 1. Executive Summary
+
+3 bullets. Format: [Finding] → COMEX decision: [action] → P&L consequence: [impact].
+Bullet 3 MUST link compensation gap (or retention risk) to product delivery or ARR.
+
+## 2. Compensation Metrics
+
+Table: Metric | NexaFlow ${dept} | Market Benchmark (CP200) | Gap | Status
+Include: gross median salary, flight-risk distribution, gender balance status.
+Use ONLY figures from the HRIS data block. Never invent salary figures.
+
+## 3. Risk Assessment
+
+Sub-sections:
+- Flight Risk: name the risk profiles by severity (High/Medium), reference CAS numbers where relevant
+- Equity Risk: gender pay gap status (data gap → remediation required), CP200 barema compliance
+- Market Position: is NexaFlow competitive? What is the retention implication?
+
+## 4. Recommendations
+
+3–5 concrete actions tied to named owners and timelines. No generic advice.
+
+═══════════════════════════════════════════
+MANDATORY STOP — after ## 4., stop immediately.
+Sections 5 (Action Plan) and 6 (Retention Scenario) are pre-computed and appended by the system.
+DO NOT write them. DO NOT add Next Steps, Conclusion, or any additional section.
+═══════════════════════════════════════════
+
+TERMINOLOGY: "SIRH" not "SIRI". Active cases: CAS-001 to CAS-005 only. NexaFlow Brussels HQ only.
 Always respond in English.`,
       contextData: sirhBlock,
-      chips: [`CP200`, dept, `N=${realN}`, `Median €${medianDisplay}`, `/people-report`, `/policy-lookup BE`],
+      chips: [`CP200`, dept, `N=${realN}`, `Median €${medianDisplay}`, `/people-report`, `/social-elections`],
       footer: `CP200 | ${dept} | N=${realN} | Median €${medianDisplay} | ${medianSource} · ${new Date().toLocaleDateString('en-BE')}`,
       engine: isDeep ? 'gemini' : 'ollama',
       chartData: compCharts,
+      lockedSections: compActionPlanMd + '\n\n' + compScenarioMd,
     };
   }
 
@@ -663,6 +766,179 @@ Write the entire JSON on ONE LINE inside the code fence. No explanation. No pros
       chips: ['/diagram org-chart', '/diagram attrition', '/diagram roadmap', '/diagram cas-003'],
       diagramMode: true,
       engine: 'gemini',
+    };
+  }
+
+  // ── /social-elections ────────────────────────────────────────────────────
+  // Belgian social elections are mandatory for companies ≥50 employees.
+  // NexaFlow (87 HC) crossed the CPPT threshold; CE threshold (100) approaches.
+  // Next elections: May 2028 (cycle every 4 years — last held May 2024).
+  if (cmd.startsWith('/social-elections')) {
+    const CURRENT_HC  = 87;
+    const CPPT_THRESHOLD = 50;
+    const CE_THRESHOLD   = 100;
+    const SERIES_B_TARGET = 140;
+    const hiresUntilCE = CE_THRESHOLD - CURRENT_HC; // 13
+
+    // ── Chart data ───────────────────────────────────────────────────────────
+    const electionsCharts: ChartSpec[] = [
+      // Chart 1 — Headcount vs. legal thresholds
+      {
+        type: 'bar',
+        title: 'Headcount vs. Legal Thresholds',
+        subtitle: 'Brussels HQ · April 2026 · Social Elections Act 04/12/2007',
+        unit: 'employees',
+        data: [
+          { label: 'CPPT\nthreshold', value: CPPT_THRESHOLD, color: '#10b981' },
+          { label: 'NexaFlow\ncurrent',   value: CURRENT_HC,    color: '#16D5C0' },
+          { label: 'CE\nthreshold',       value: CE_THRESHOLD,  color: '#f59e0b' },
+          { label: 'Series B\ntarget',    value: SERIES_B_TARGET, color: '#3b82f6' },
+        ],
+      },
+      // Chart 2 — Current compliance status (cases severity track)
+      {
+        type: 'cases',
+        title: 'Social Compliance Status',
+        subtitle: 'NexaFlow SA · April 2026',
+        unit: '/5',
+        data: [
+          { label: 'CPPT constituted 2024',   value: 1, color: '#10b981' },
+          { label: 'CPPT Q2 2026 meeting',    value: 2, color: '#f59e0b' },
+          { label: 'CAS-003: CPPT notif.',    value: 5, color: '#dc2626' },
+          { label: `CE: ${hiresUntilCE} hires away`, value: 4, color: '#f97316' },
+          { label: '2028 elections prep',     value: 1, color: '#10b981' },
+        ],
+      },
+    ];
+
+    // ── Locked sections 5 & 6 — deterministic ───────────────────────────────
+    const electionsActionPlanMd = `
+## 5. Compliance Calendar — Immediate Actions
+
+| Obligation | Legal Basis | Status | Action Required | Owner | Due Date | Risk if Ignored |
+|---|---|---|---|---|---|---|
+| **CAS-003: CPPT notification** | Wellbeing Act Art. 32quater | [URGENT] | Notify CPPT formally within 24h of investigator mandate. CLO drafts notification letter. | CLO Isabelle Thiry | **2026-04-24** | Procedure invalidated if notification late. Personal liability for CHRO under Art. 32quater. |
+| **CPPT Q2 2026 meeting** | Wellbeing Act Art. 65bis | [PENDING] | Schedule Q2 meeting. Agenda: CAS-003 status, annual prevention program, mandate check. | Anke Willems + CPPT chair | 2026-06-30 | Failure to hold meeting = Wellbeing Act violation. CPPT may lodge complaint with Social Inspection. |
+| **CPPT mandate verification** | Social Elections Act 04/12/2007 | [PENDING] | Verify with Securex that May 2024 mandates are valid and correctly registered. | Anke Willems | 2026-05-15 | Irregular composition makes all CPPT decisions legally challengeable. |
+| **Gender pay gap reporting** | Gender Pay Gap Act 22/04/2012 | [GAP] | Launch voluntary gender self-declaration in Securex onboarding (field currently absent from SIRH). | Anke Willems | 2026-05-31 | Biennial report mandatory >=50 HC. IEFH audit risk if gap persists. |
+| **CE pre-planning brief** | Social Elections Act (CE threshold: 100 HC) | [PROACTIVE] | Brief CFO Marc Dujardin and CLO Isabelle Thiry on CE obligations. NexaFlow is ${hiresUntilCE} hires from threshold. | Bruno Mineo | 2026-08-31 | Decisions on restructuring or profit-sharing made without CE may be annulled retroactively. |
+| **2028 elections: headcount baseline** | Social Elections Act Art. 14 | [PROACTIVE] | Reference period = calendar year 2026. Start headcount audit now (FTEs + temps included). | Yasmina El Idrissi | 2026-12-31 | Faulty electoral rolls force full procedure restart. 2028 timeline at risk. |
+`.trim();
+
+    const electionsRoadmapMd = `
+## 6. Series B HR Legal Roadmap — Social Thresholds
+
+| Milestone | Trigger | Est. Date | Legal Consequence | Preparation Required |
+|---|---|---|---|---|
+| **100 employees crossed** | Hire #${hiresUntilCE + 1} (est. Q3 2026 at current pace) | ~Sep 2026 | **CE (Conseil d'Entreprise) becomes mandatory** — new social elections required within 6 months | Begin CE pre-planning: information rights framework, financial disclosure calendar (Art. 96 Companies Code), employee representative training |
+| **CE first meeting** | Within 3 months of CE elections | ~Q1 2027 | Annual information rights: financial data, employment projections, restructuring plans must be shared with CE | Prepare financial disclosure templates; CLO to draft information protocol with CFO |
+| **2028 elections -- X-60 day** | ~March 2028 | Mar 2028 | Official initiation of electoral procedure (posting of notices, voter lists) | Headcount audit complete; CPPT and CE candidate lists prepared |
+| **2028 elections -- X-Day** | May 2028 | May 2028 | Full electoral procedure (ballots, counting, mandate assignment) | Electoral bureau constituted; Securex mandate |
+| **150+ employees** | Est. 2027 if Series B growth on track | 2027 | Expanded CE information rights; additional obligations depend on sectoral CBA and commission paritaire — **requires legal audit when 130 HC reached** | Brief CLO Isabelle Thiry + CFO Marc Dujardin at 130 HC — do not wait for threshold crossing |
+
+**Key principle:** Every threshold crossing requires **advance preparation of 6–12 months**, not a reactive response. The CE threshold (~${hiresUntilCE} hires away) is the most critical: once crossed, any unilateral HR decision made without CE consultation can be challenged and annulled.
+`.trim();
+
+    return {
+      cardColor: '#DC2626',
+      title: 'Social Elections & Compliance — April 2026',
+      systemPrompt: `Generate a CHRO-to-COMEX Social Elections & Workers' Representation compliance report for NexaFlow SA (87 employees, Brussels HQ).
+
+COMPANY STATUS:
+  - 87 employees: above CPPT threshold (50), CPPT constituted since May 2024 elections
+  - ${hiresUntilCE} hires from CE threshold (100): CE not yet mandatory, but approaching
+  - Last social elections: May 2024 | Next: May 2028
+  - CAS-003 (harassment): CPPT must be notified under Art. 32quater Wellbeing Act — CRITICAL
+
+APPLICABLE LAW: Social Elections Act 04/12/2007 | Wellbeing Act 04/08/1996 | Gender Pay Gap Act 22/04/2012 | Companies Code Art. 96
+
+TERMINOLOGY — CRITICAL:
+  CPPT = Comite pour la Prevention et la Protection au Travail (safety/wellbeing committee, threshold: 50 HC).
+         Constituted since May 2024. Do NOT call it "Works Council" — that is the CE.
+  CE   = Conseil d'Entreprise / Ondernemingsraad (economic works council, threshold: 100 HC).
+         NexaFlow does NOT yet have a CE. It does not exist until threshold is crossed AND elections are held.
+  CPPT and CE are entirely separate bodies with different thresholds, roles, and legal bases.
+  Never write "Works Council (CPPT)". Never conflate these two bodies in any table, sentence, or cell.
+
+WRITING STYLE FOR COMEX:
+  - Short sentences. One idea per sentence. Do not repeat the same noun in consecutive sentences.
+  - No double spaces. No "—" after which the same word restates what precedes.
+  - Tables preferred over prose paragraphs wherever possible.
+  - No preamble, no "In conclusion", no sign-off.
+
+CP200 PRECISION — MANDATORY:
+  CP200 (CPNAE/ANPCB) is a commission paritaire (joint labour-management committee), not a law.
+  CP200 sets sectoral minimum wages and working conditions — it does NOT regulate prevention, CPPT, or social elections.
+  When referencing Internal Prevention Advisor obligations, cite ONLY the Wellbeing Act 04/08/1996 (Art. 32 et seq.).
+  Never write "CP200 / Law compliance" for prevention obligations — write "Wellbeing Act (Art. 32 et seq.)".
+
+═══════════════════════════════════════════
+OUTPUT STRUCTURE — MANDATORY
+Output EXACTLY these four sections with these EXACT headers, in this order.
+No other sections. No "Next Steps". No Threshold Roadmap. No conclusion. No sign-off.
+═══════════════════════════════════════════
+
+## 1. Executive Summary
+
+Exactly 3 bullets. COMEX-decision format for each:
+  [Legal finding] -> COMEX decision: [action required] -> Risk if no action: [consequence + timeline]
+Bullet 1: CAS-003 x CPPT — the most urgent legal obligation with personal liability exposure.
+Bullet 2: CE threshold — how many hires away, what it triggers, what COMEX must decide now.
+  RISK LANGUAGE for bullet 2: use "unilateral decisions on restructuring or profit-sharing may be annulled by labour court" — never use vague expressions like "wasted opportunity" or "missed chance".
+Bullet 3: Governance gap — the highest-urgency compliance gap (gender pay gap reporting or mandate verification).
+No prose before or between bullets. No section title explanation.
+
+## 2. Legal Status Assessment
+
+TABLE — columns: Body | Legal Basis | Threshold | NexaFlow Status | Key Obligations Summary | Next Trigger.
+EXACTLY 2 rows. Use these EXACT values in the Body and Legal Basis cells — do not abbreviate or invent:
+  Row 1 — Body: "CPPT (Comite pour la Prevention et la Protection au Travail)"
+           Legal Basis: "Wellbeing Act 04/08/1996"
+           Threshold: "50 HC"
+           NexaFlow Status: "CONSTITUTED — May 2024 elections"
+           Key Obligations: "Quarterly meetings, annual prevention program, Art. 32quater notifications (incl. CAS-003)"
+           Next Trigger: "Q2 2026 meeting due"
+  Row 2 — Body: "CE (Conseil d'Entreprise / Ondernemingsraad)"
+           Legal Basis: "Social Elections Act 04/12/2007 + Companies Code Art. 96"
+           Threshold: "100 HC"
+           NexaFlow Status: "NOT YET CONSTITUTED — 87 HC (${hiresUntilCE} hires away)"
+           Key Obligations: "N/A until constituted"
+           Next Trigger: "Hire #${CE_THRESHOLD - CURRENT_HC + 1} triggers mandatory CE elections"
+CRITICAL: Row 2 Body cell = "CE (Conseil d'Entreprise / Ondernemingsraad)" — NEVER "CETBD", "CE TBD", or any variant.
+Include one sentence after the table: what the CE crossing means in terms of annulment risk for NexaFlow decisions.
+
+## 3. Current CPPT Obligations
+
+TABLE — columns: Obligation | Frequency | Legal Basis | Current Status | Responsible.
+EXACTLY 5 rows, in this order:
+  (1) Quarterly CPPT meetings — Wellbeing Act Art. 65bis
+  (2) Annual prevention program review — Wellbeing Act Art. 10 et seq.
+  (3) Accident/incident reporting to CPPT — Wellbeing Act Art. 94bis
+  (4) CAS-003 notification under Art. 32quater — URGENT — Wellbeing Act 04/08/1996
+  (5) Internal Prevention Advisor mandate verification — Wellbeing Act Art. 32 et seq. (NOT CP200 — CP200 covers wages only)
+One short phrase per cell. Do not use double spaces. No expanded prose.
+
+## 4. CAS-003 x CPPT Intersection
+
+Write EXACTLY 3 bullets, each starting with a bold label:
+  **Notification** — what Art. 32quater requires, exact deadline.
+  **Joint action plan** — what the CPPT prevention advisor and the external investigator must do together.
+  **COMEX liability** — who bears personal legal responsibility and what the consequence is if action is delayed.
+No prose paragraph. No background. No repetition of CAS facts. One short sentence per bullet.
+
+═══════════════════════════════════════════
+MANDATORY STOP — after ## 4., stop immediately.
+Sections 5 (Compliance Calendar) and 6 (Series B HR Legal Roadmap) are pre-computed and appended automatically.
+DO NOT write section 5. DO NOT write section 6. DO NOT add Next Steps or any additional section.
+═══════════════════════════════════════════
+
+Always respond in English. Cite exact Belgian legal references (article numbers, law dates).
+Never invent cases beyond CAS-001 to CAS-005. NexaFlow Brussels HQ only.`,
+      contextData: `${NEXAFLOW_GROUND_TRUTH}\n\nSocial elections context: CPPT constituted (2024 elections). Next elections: May 2028. Threshold to CE: ${hiresUntilCE} hires. CAS-003 requires CPPT notification under Art. 32quater.`,
+      chips: ['/cas-003', '/people-report', '/policy-lookup BE', 'CE threshold brief', '2028 elections prep'],
+      engine: 'gemini', // legal precision requires Gemini
+      chartData: electionsCharts,
+      lockedSections: electionsActionPlanMd + '\n\n' + electionsRoadmapMd,
     };
   }
 
