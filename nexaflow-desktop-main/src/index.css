@@ -36,13 +36,13 @@
 
     --radius: 0.5rem;
 
-    /* Windows 11 specific tokens */
-    --win-taskbar: 0 0% 11%;
-    --win-titlebar: 0 0% 18%;
-    --win-window: 220 8% 16%;
-    --win-window-content: 220 6% 13%;
-    --win-blue: 210 100% 42%;
-    --win-accent-blue: 217 91% 60%;
+    /* Windows 11 specific tokens — NexaFlow branded */
+    --win-taskbar: 228 42% 6%;
+    --win-titlebar: 228 35% 12%;
+    --win-window: 228 28% 14%;
+    --win-window-content: 228 32% 10%;
+    --win-blue: 175 80% 45%;        /* Electric Teal */
+    --win-accent-blue: 175 70% 55%; /* Teal highlight */
     --win-divider: 220 6% 22%;
     --win-hover: 0 0% 100% / 0.06;
     --win-active: 0 0% 100% / 0.1;
@@ -71,9 +71,18 @@
     --status-green: 142 71% 45%;
     --status-blue: 210 100% 50%;
 
+    /* NexaFlow Brand Colors */
+    --nf-midnight: #0B1020;
+    --nf-teal: #16D5C0;
+    --nf-graphite: #1E293B;
+    --nf-silver: #D9E1EA;
+    --nf-pure: #F7FAFC;
+    --nf-blue: #3B82F6;
+    --nf-violet: #7C3AED;
+
     /* Wallpaper */
-    --wallpaper-from: 215 50% 12%;
-    --wallpaper-to: 215 45% 20%;
+    --wallpaper-from: 228 42% 9%;
+    --wallpaper-to: 215 30% 14%;
 
     /* Shadows */
     --shadow-window: 0 12px 48px -8px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.3);
@@ -96,11 +105,37 @@
 }
 
 @layer utilities {
+  /* ── NexaFlow Branded Wallpaper ── */
   .wallpaper {
     background:
-      radial-gradient(circle at 70% 30%, hsl(217 91% 25% / 0.4), transparent 50%),
-      radial-gradient(circle at 20% 80%, hsl(210 100% 30% / 0.3), transparent 50%),
-      linear-gradient(135deg, #0F1B2D 0%, #1A2F4A 100%);
+      /* Electric Teal glow — top-right (primary accent) */
+      radial-gradient(ellipse at 78% 18%, hsl(175 80% 42% / 0.22), transparent 42%),
+      /* Soft teal echo — bottom-left */
+      radial-gradient(ellipse at 12% 82%, hsl(175 80% 30% / 0.14), transparent 40%),
+      /* Blue-violet accent — mid */
+      radial-gradient(ellipse at 55% 60%, hsl(245 70% 28% / 0.10), transparent 50%),
+      /* Midnight Circuit base */
+      linear-gradient(150deg, #0B1020 0%, #0f1629 55%, #111827 100%);
+  }
+  /* Subtle circuit-grid overlay */
+  .wallpaper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(hsl(175 80% 60% / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(175 80% 60% / 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  /* Teal flow-line accent — top edge */
+  .wallpaper::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #16D5C0 35%, #16D5C0 65%, transparent 100%);
+    opacity: 0.55;
+    pointer-events: none;
   }
   .taskbar-glass {
     background: hsl(var(--win-taskbar) / 0.78);

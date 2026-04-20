@@ -10,6 +10,9 @@ import { useOllama } from '@/hooks/useOllama';
 import { exportMemoPdf } from '@/utils/pdfExporter';
 import { LLM_PRESETS, type LlmPresetKey } from '@/config/llmConfig';
 import DiagramBubble, { extractDiagramJson } from './DiagramBubble';
+import ChartCard from './ChartCard';
+import NexaMarkdown from './NexaMarkdown';
+import type { ChartSpec } from '@/hooks/use-command-router';
 
 type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine; title?: string; diagramJson?: string };
 
@@ -268,6 +271,9 @@ export default function NexaAIWindow() {
         return '⚠️ Could not parse the diagram — Gemini may have truncated the output. Try again.';
       })();
 
+      // Capture chartData from routed result before closing over it in JSX
+      const chartData: ChartSpec[] | undefined = routed?.chartData;
+
       setMessages((m) => [...m, {
         role: 'assistant',
         engine,
@@ -276,6 +282,7 @@ export default function NexaAIWindow() {
         diagramJson,
         content: (
           <div className="space-y-3">
+            {/* ── Header: colour dot + title + engine badge ── */}
             {routed && (
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: routed.cardColor }} />
@@ -283,7 +290,20 @@ export default function NexaAIWindow() {
                 <EngineBadge engine={engine} />
               </div>
             )}
-            {displayText && <p className="text-[14px] whitespace-pre-wrap">{displayText}</p>}
+
+            {/* ── Charts (deterministic ground-truth data — above LLM narrative) ── */}
+            {chartData && chartData.length > 0 && (
+              <div className="grid gap-3 mb-1" style={{ gridTemplateColumns: chartData.length > 1 ? '1fr 1fr' : '1fr' }}>
+                {chartData.map((spec, i) => (
+                  <ChartCard key={i} spec={spec} />
+                ))}
+              </div>
+            )}
+
+            {/* ── LLM narrative — rendered as markdown ── */}
+            {displayText && <NexaMarkdown content={displayText} />}
+
+            {/* ── Follow-up chips ── */}
             {routed && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {routed.chips.map((chip) => (
@@ -298,6 +318,8 @@ export default function NexaAIWindow() {
                 ))}
               </div>
             )}
+
+            {/* ── Footer ── */}
             {routed?.footer && (
               <p className="text-[11px] font-mono text-claude-muted mt-3 pt-2 border-t border-claude-border tracking-wide">
                 📌 {routed.footer}

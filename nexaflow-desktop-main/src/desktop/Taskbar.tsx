@@ -93,14 +93,22 @@ export default function Taskbar() {
     <div className="fixed bottom-0 left-0 right-0 h-12 taskbar-glass z-[9999] flex items-center px-2">
       {/* Center cluster */}
       <div className="flex-1 flex justify-center items-center gap-1">
+        {/* NexaFlow Start Button — NF monogram */}
         <button
           onClick={() => setStartMenu(!startMenuOpen)}
-          className={cn("w-10 h-10 grid place-items-center rounded hover:bg-white/10", startMenuOpen && "bg-white/10")}
-          aria-label="Start"
+          className={cn("w-10 h-10 grid place-items-center rounded hover:bg-white/10 transition-all", startMenuOpen && "bg-white/10")}
+          aria-label="NexaFlow Start"
+          title="NexaFlow"
         >
-          <div className="grid grid-cols-2 gap-0.5">
-            {[0,1,2,3].map(i => <div key={i} className="w-2 h-2 bg-win-blue rounded-[1px]" />)}
-          </div>
+          <svg width="26" height="26" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* N stroke */}
+            <polyline points="28,168 28,32 88,132 88,32" stroke="#16D5C0" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            {/* Connection dot */}
+            <circle cx="88" cy="132" r="10" fill="#16D5C0"/>
+            {/* F strokes */}
+            <polyline points="108,168 108,32 172,32" stroke="#16D5C0" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <line x1="108" y1="100" x2="162" y2="100" stroke="#16D5C0" strokeWidth="18" strokeLinecap="round"/>
+          </svg>
         </button>
         <button className="w-10 h-10 grid place-items-center rounded hover:bg-white/10" aria-label="Search">
           <Search className="w-4 h-4 text-white/85" />

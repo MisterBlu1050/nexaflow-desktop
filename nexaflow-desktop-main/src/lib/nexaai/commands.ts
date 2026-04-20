@@ -1,4 +1,17 @@
-// src/lib/nexaai/commands.ts
+// ⚠️  DEPRECATED — DO NOT USE — DO NOT IMPORT
+// ─────────────────────────────────────────────────────────────────────────────
+// This file is an orphaned static stub. It is NOT imported anywhere in the app.
+// All slash-command routing now lives in src/hooks/use-command-router.ts.
+//
+// DATA IN THIS FILE IS INTENTIONALLY WRONG and must not be used:
+//   • byDept: { Engineering: 120, Sales: 95, HR: 15, Product: 40 } — FABRICATED
+//   • sites: { Brussels: 180, Amsterdam: 60, Berlin: 30 } — NexaFlow has ONE site
+//   • Engineering median: €68,000 — stale, incorrect
+//
+// Ground-truth headcounts and metrics: src/lib/nexaflow-context.ts → REAL_HEADCOUNTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// src/lib/nexaai/commands.ts — LEGACY STUB (all exports below are dead code)
 // Six HR-focused NexaAI slash-command handlers
 
 export type NexaCommandResponse = {
