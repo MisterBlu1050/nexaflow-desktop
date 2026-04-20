@@ -14,7 +14,7 @@ import ChartCard from './ChartCard';
 import NexaMarkdown from './NexaMarkdown';
 import type { ChartSpec } from '@/hooks/use-command-router';
 
-type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine; title?: string; diagramJson?: string };
+type ChatMsg = { role: "user" | "assistant"; content: React.ReactNode; raw?: string; engine?: LLMEngine; title?: string; diagramJson?: string; chartData?: ChartSpec[]; subtitle?: string; };
 
 /** Pill badge shown in each assistant card */
 function EngineBadge({ engine }: { engine: LLMEngine }) {
@@ -278,8 +278,10 @@ export default function NexaAIWindow() {
         role: 'assistant',
         engine,
         title: routed?.title,
+        subtitle: routed ? `${routed.title} · NexaFlow SA · ${new Date().toLocaleDateString('fr-BE')}` : undefined,
         raw: reply,
         diagramJson,
+        chartData: chartData,
         content: (
           <div className="space-y-3">
             {/* ── Header: colour dot + title + engine badge ── */}
@@ -492,8 +494,13 @@ export default function NexaAIWindow() {
                           <button className="p-1.5 rounded hover:bg-white"><ThumbsDown className="w-3.5 h-3.5" /></button>
                           <button className="p-1.5 rounded hover:bg-white"><RefreshCw className="w-3.5 h-3.5" /></button>
                           <button className="p-1.5 rounded hover:bg-white"><Copy className="w-3.5 h-3.5" /></button>
-                          <button 
-                            onClick={() => exportMemoPdf({ title: m.title || "NexaFlow Memo", content: m.raw || "" })} 
+                          <button
+                            onClick={() => exportMemoPdf({
+                              title: m.title || "NexaFlow Memo",
+                              content: m.raw || "",
+                              subtitle: m.subtitle,
+                              chartData: m.chartData,
+                            })}
                             className="p-1.5 rounded hover:bg-white text-claude-accent flex items-center gap-1"
                             title="Export PDF COMEX"
                           >
