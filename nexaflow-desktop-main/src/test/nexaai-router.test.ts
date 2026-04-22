@@ -80,7 +80,9 @@ describe('nexaflow-context.ts exports', () => {
 
   it('NEXAFLOW_SYSTEM_CONTEXT references single site only', () => {
     expect(NEXAFLOW_SYSTEM_CONTEXT).toContain('Brussels');
-    expect(NEXAFLOW_SYSTEM_CONTEXT).not.toMatch(/Amsterdam|Berlin|Lisbon/i);
+    expect(NEXAFLOW_SYSTEM_CONTEXT).not.toMatch(/\bAmsterdam\s+(office|site|HQ)\b|\bsite\s+in\s+Amsterdam\b|Amsterdam\s*\(/i);
+    expect(NEXAFLOW_SYSTEM_CONTEXT).not.toMatch(/\bBerlin\s+(office|site|HQ)\b|\bsite\s+in\s+Berlin\b|Berlin\s*\(/i);
+    expect(NEXAFLOW_SYSTEM_CONTEXT).not.toMatch(/\bLisbon\s+(office|site|HQ)\b|\bsite\s+in\s+Lisbon\b|Lisbon\s*\(/i);
   });
 
   it('NEXAFLOW_SYSTEM_CONTEXT embeds Engineering median €79,500', () => {

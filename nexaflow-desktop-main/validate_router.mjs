@@ -1,8 +1,8 @@
 /**
  * validate_router.mjs — end-to-end validation without vitest/jsdom
  *
- * Run: node --import tsx/esm validate_router.mjs
- * (tsx resolves @/ aliases via tsconfig)
+ * Run: npx vite-node validate_router.mjs
+ * (vite-node resolves @/ aliases via tsconfig)
  *
  * Tests all HandlerResult outputs against ground-truth anchors.
  */
